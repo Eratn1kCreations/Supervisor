@@ -1162,15 +1162,9 @@ class Dispatcher:
              ktory moze zostac od razu zrealizowany, gdyz nie ma kolizji, w preciwnym wypadku None
         """
         self.planning_graph = PlanningGraph(graph_data)
-        # print("tasks len: ", str(len(tasks)))
-        #for task in tasks:
-        #    task.print_info()
         self.set_plan(robots, tasks)
 
         given_robot = self.robots_plan.get_robot_by_id(robot_id)
-        # print("robot")
-        # print(given_robot.task.id)
-        # print(given_robot.next_task_edge)
         if given_robot.next_task_edge is None:
             return None
         else:
@@ -1185,11 +1179,8 @@ class Dispatcher:
             robots ({"id": Robot, "id": Robot, ...}): slownik z lista robotow do ktorych beda przypisywane zadania
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
         """
-        print([robot.task for robot in self.robots_plan.robots.values()])
         self.set_tasks(tasks)
-        print([robot.task for robot in self.robots_plan.robots.values()])
         self.init_robots_plan(robots)
-        print([robot.task for robot in self.robots_plan.robots.values()])
         self.set_tasks_doing_by_robots()
         self.set_task_assigned_to_robots()
         self.set_other_tasks()
@@ -1215,17 +1206,13 @@ class Dispatcher:
         """
         Przypisanie zadan do robotow, ktore aktualnie pracuja i usuniecie ich z listy zadan do przeanalizowania.
         """
-        for robot in self.robots_plan.robots.values():
-            print(robot.get_info())
-        for task in self.unanalyzed_tasks_handler.tasks:
-            print(task.get_info())
+
         # przypisanie zadan z POI w których aktualnie jest robot
         tasks_id_to_remove = []
         for unanalyzed_task in self.unanalyzed_tasks_handler.tasks:
             current_behaviour_is_goto = unanalyzed_task.get_current_behaviour().check_if_go_to()
             task_started = unanalyzed_task.check_if_task_started()
             for robot in self.robots_plan.get_free_robots():
-                print("1")
                 if robot.id == unanalyzed_task.robot_id and task_started and not current_behaviour_is_goto:
                     self.robots_plan.set_task(robot.id, unanalyzed_task)
                     self.set_task_edge(robot.id)
@@ -1239,7 +1226,6 @@ class Dispatcher:
             task_poi_goal = unanalyzed_task.get_poi_goal()
             task_started = unanalyzed_task.check_if_task_started()
             for robot in self.robots_plan.get_free_robots():
-                print("2")
                 robot_poi = self.planning_graph.get_poi(robot.edge)
                 if (robot.id == unanalyzed_task.robot_id and task_started and current_behaviour_is_goto)\
                         and (robot_poi == task_poi_goal or robot_poi is None):
@@ -1256,7 +1242,6 @@ class Dispatcher:
             task_poi_goal = unanalyzed_task.get_poi_goal()
             task_started = unanalyzed_task.check_if_task_started()
             for robot in self.robots_plan.get_free_robots():
-                print("3")
                 robot_poi = self.planning_graph.get_poi(robot.edge)
                 if robot.id == unanalyzed_task.robot_id and task_started and robot_poi != task_poi_goal:
                     self.robots_plan.set_task(robot.id, unanalyzed_task)
