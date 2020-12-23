@@ -629,6 +629,7 @@ class SupervisorGraphCreator(DataConverter):
         dock_nodes = self.get_all_nodes_by_type_section(base_node_section_type["dockWaitUndock"])
         for dock_node in dock_nodes:
             node_id = dock_node[0]
+            return_end_node = self.graph_node_id
             self.graph.add_node(self.graph_node_id, nodeType=new_node_type["dock"], sourceNode=node_id,
                                 color=node_color["dock"], poiId=dock_node[1]["poiId"])
             self.graph.add_edge(self.graph_node_id, self.graph_node_id + 1, id=self.edge_id, weight=0,
@@ -652,12 +653,19 @@ class SupervisorGraphCreator(DataConverter):
             self.edge_id = self.edge_id + 1
             self.graph.add_node(self.graph_node_id, nodeType=new_node_type["end"], sourceNode=node_id,
                                 color=node_color["end"], poiId=dock_node[1]["poiId"])
+            return_start_node = self.graph_node_id
             self.graph_node_id = self.graph_node_id + 1
+            # krawedz powrotna do poczatku stanowiska - dla przydzielenia kolejnego dojazdu do tego samego punktu
+            self.graph.add_edge(return_start_node, return_end_node, id=self.edge_id, weight=0,
+                                behaviour=Behaviour.TYPES["goto"], robots=[],
+                                edgeGroupId=self.group_id_switcher[node_id], sourceNodes=[node_id], sourceEdges=[0])
+            self.edge_id = self.edge_id + 1
 
     def add_poi_no_docking(self):
         no_dock_nodes = self.get_all_nodes_by_type_section(base_node_section_type["waitPOI"])
         for no_dock_node in no_dock_nodes:
             node_id = no_dock_node[0]
+            return_end_node = self.graph_node_id
             self.graph.add_node(self.graph_node_id, nodeType=new_node_type["wait"], sourceNode=node_id,
                                 color=node_color["wait"], poiId=no_dock_node[1]["poiId"])
             self.graph.add_edge(self.graph_node_id, self.graph_node_id + 1, id=self.edge_id, weight=0,
@@ -667,7 +675,13 @@ class SupervisorGraphCreator(DataConverter):
 
             self.graph.add_node(self.graph_node_id, nodeType=new_node_type["end"], sourceNode=node_id,
                                 color=node_color["end"], poiId=no_dock_node[1]["poiId"])
+            return_start_node = self.graph_node_id
             self.graph_node_id = self.graph_node_id + 1
+            # krawedz powrotna do poczatku stanowiska - dla przydzielenia kolejnego dojazdu do tego samego punktu
+            self.graph.add_edge(return_start_node, return_end_node, id=self.edge_id, weight=0,
+                                behaviour=Behaviour.TYPES["goto"], robots=[],
+                                edgeGroupId=self.group_id_switcher[node_id], sourceNodes=[node_id], sourceEdges=[0])
+            self.edge_id = self.edge_id + 1
 
     def add_poi_no_changes(self):
         nodes = self.get_all_nodes_by_type_section(base_node_section_type["noChanges"])
@@ -891,13 +905,17 @@ class SupervisorGraphCreator(DataConverter):
             node_type = node_data["nodeType"]
             if node_type == new_node_type["dock"]:  # zakomentowane funkcje na potrzeby testow polaczenia pomiedzy
                 # krawedziami
-                self.graph.nodes[node_id]["pos"] = node_position # self.get_poi_nodes_pos(node_id, combined_edges)
+                #self.graph.nodes[node_id]["pos"] = node_position
+                self.graph.nodes[node_id]["pos"] = self.get_poi_nodes_pos(node_id, combined_edges)
             elif node_type == new_node_type["wait"]:
-                self.graph.nodes[node_id]["pos"] = node_position
+                #self.graph.nodes[node_id]["pos"] = node_position
+                self.graph.nodes[node_id]["pos"] = self.get_poi_nodes_pos(node_id, combined_edges)
             elif node_type == new_node_type["undock"]:
-                self.graph.nodes[node_id]["pos"] = node_position
+                # self.graph.nodes[node_id]["pos"] = node_position
+                self.graph.nodes[node_id]["pos"] = self.get_poi_nodes_pos(node_id, combined_edges)
             elif node_type == new_node_type["end"]:
-                self.graph.nodes[node_id]["pos"] = node_position
+                # self.graph.nodes[node_id]["pos"] = node_position
+                self.graph.nodes[node_id]["pos"] = self.get_poi_nodes_pos(node_id, combined_edges)
             elif node_type == new_node_type["noChanges"]:
                 self.graph.nodes[node_id]["pos"] = node_position
             elif node_type == new_node_type["intersection_in"]:
@@ -1261,10 +1279,10 @@ class SupervisorGraphCreator(DataConverter):
         # nx.draw_networkx(self.graph, node_pos,node_color = node_col, node_size=550,font_size=15,
         # with_labels=True,font_color="w", width=2)
 
-        nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=200, font_size=10,
+        nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=3000, font_size=20,
                          with_labels=True, font_color="w", width=4)
         nx.draw_networkx_edge_labels(self.graph, node_pos,
-                                     edge_labels=max_robots, font_size=10)
+                                     edge_labels=max_robots, font_size=30)
 
         # nx.draw_networkx(self.graph, node_pos,edge_color= edge_col, node_color = node_col, node_size=3000,
         # font_size=25,with_labels=True,font_color="w", width=4)
