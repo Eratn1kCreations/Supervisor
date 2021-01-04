@@ -171,7 +171,7 @@ class Task(disp.Task):
         """
         Odpowiada za przypisanie kolejnego id zachowania do wykonania
         """
-        if self.curr_behaviour_id == (len( self.behaviours_dict)-1):
+        if self.curr_behaviour_id == (len(self.behaviours_dict)-1):
             # zakonczono zadanie
             self.status = self.STATUS_LIST["DONE"]
         else:
@@ -179,7 +179,7 @@ class Task(disp.Task):
             self.curr_behaviour_id = self.curr_behaviour_id + 1
 
     def check_if_behaviour_is_go_to(self):
-        behaviour =  self.behaviours_dict[self.curr_behaviour_id]
+        behaviour = self.behaviours_dict[self.curr_behaviour_id]
         is_go_to = "to" in behaviour["parameters"]
         return is_go_to
 
@@ -203,7 +203,7 @@ class Supervisor:
         self.update_robots_on_edge(robots_state_list)
         self.update_tasks_states(robots_state_list)
         robots = convert_robots_state_to_dispatcher_format(robots_state_list)
-        #self.plan = dispatcher.get_plan_all_free_robots(self.graph, robots, self.get_task_for_dispatcher())
+        # self.plan = dispatcher.get_plan_all_free_robots(self.graph, robots, self.get_task_for_dispatcher())
         self.plan = dispatcher.get_plan_all_free_robots(self.graph, robots, self.tasks)
         self.start_tasks()
 
