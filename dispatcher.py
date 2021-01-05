@@ -190,7 +190,7 @@ class Task:
                   "robotId": string, "start_time": time, "priority": int, "status": STATUS_LIST[status},
                   "weight": int): zadanie dla robota
         """
-        # self.validate_input(task_data)
+        self.validate_input(task_data)
         self.id = task_data[self.PARAM["ID"]]
         self.robot_id = task_data[self.PARAM["ROBOT_ID"]]
         self.start_time = task_data[self.PARAM["START_TIME"]]
@@ -450,7 +450,7 @@ class Robot:
             robot_data ({"id": string, "edge": (string, string), "planningOn": bool, "isFree": bool,
                          "timeRemaining": float/None}): slownik z danymi o robocie
         """
-        #self.validate_input(robot_data)
+        self.validate_input(robot_data)
         self.id = robot_data["id"]
         self.edge = robot_data["edge"]
         self.poi_id = robot_data["poiId"]
@@ -580,7 +580,7 @@ class RobotsPlanManager:
         robots_copy = copy.deepcopy(robots)
         for i in robots_copy:
             robot = robots_copy[i]
-            print(robot.edge)
+            # print(robot.edge)
             if robot.planning_on:
                 if type(robot.edge) is not tuple:
                     # zamiast krawedzi jest POI TODO pobrania POI z innego miejsca i wpisanie odpowiedniej
@@ -590,8 +590,8 @@ class RobotsPlanManager:
                     #print("robot edge/poi id: ", robot.edge, robot.poi_id)
                     robot.edge = base_poi_edges[robot.poi_id]
                 self.robots[robot.id] = robot
-            print(robot.edge)
-            print()
+            # print(robot.edge)
+            # print()
 
     def get_robot_by_id(self, robot_id):
         """
@@ -824,10 +824,10 @@ class PlanningGraph:
         for edge in self.graph.edges(data=True):
             start_node_poi_id = self.graph.nodes[edge[0]]["poiId"]
             end_node_poi_id = self.graph.nodes[edge[1]]["poiId"]
-            if start_node_poi_id in no_block_poi_ids and end_node_poi_id in no_block_poi_ids:
-                self.graph.edges[edge[0], edge[1]]["planWeight"] = self.graph.edges[edge[0], edge[1]]["weight"]
-            else:
+            if start_node_poi_id not in no_block_poi_ids or end_node_poi_id not in no_block_poi_ids:
                 self.graph.edges[edge[0], edge[1]]["planWeight"] = None
+            else:
+                self.graph.edges[edge[0], edge[1]]["planWeight"] = self.graph.edges[edge[0], edge[1]]["weight"]
 
     def get_end_go_to_node(self, poi_id, poi_type):
         """
@@ -935,11 +935,16 @@ class PlanningGraph:
                 max_robots = edge[2]["maxRobots"]
                 max_robot_pois[poi_id] = max_robots if max_robots > 0 else 1
             elif poi_type["nodeSection"] in [gc.base_node_section_type["waitPOI"],
-                                             gc.base_node_section_type["dockWaitUndock"]] \
-                    and edge[2]["edgeGroupId"] == 0:
-                # 1 dla obsługi samego stanowiska + maksymalna liczba robotów na krawędzi związana z danym POI
-                max_robots = edge[2]["maxRobots"] + 1
-                max_robot_pois[poi_id] = max_robots if max_robots > 0 else 1
+                                             gc.base_node_section_type["dockWaitUndock"]]:
+                if edge[2]["edgeGroupId"] == 0:
+                    # 1 dla obsługi samego stanowiska + maksymalna liczba robotów na krawędzi związana z danym POI
+                    max_robots = edge[2]["maxRobots"] + 1
+                    max_robot_pois[poi_id] = max_robots if max_robots > 0 else 1
+                else:
+                    # TODO uwzglednienie w obsludze czy poi laczy sie bezposrednio ze skrzyzowaniem czy nie,
+                    #  jesli tak to
+                    # poi obsluzone moze byc tylko prez 1 robota
+                    max_robot_pois[poi_id] = 1
         return max_robot_pois
 
     def get_group_id(self, edge):
@@ -1026,7 +1031,7 @@ class PlanningGraph:
     def get_path(self, start_node, end_node):
         """
         Zwraca sciezke od aktualnego polozenia robota do celu.
-        TODO - obsluga gry wezel poczatkowy jest tym samym co koncowy np. ponowne zlecenie dojazdu tego samego
+        TODO - obsluga gdy wezel poczatkowy jest tym samym co koncowy np. ponowne zlecenie dojazdu tego samego
         robota do parkingu
         Parameters:
             start_node (string): wezel od ktorego ma byc rozpoczete planowanie
@@ -1035,7 +1040,7 @@ class PlanningGraph:
         Returns:
             (list): kolejne krawedzie grafu, ktorymi ma sie poruszac robot, aby dotrzec do celu
         """
-        # self.block_other_pois(start_node, end_node)
+        self.block_other_pois(start_node, end_node)
         if start_node == end_node:
             raise PlaningGraphError("Wrong plan. Start node '{}' should be different than end node '{}'."
                                     .format(start_node, end_node))
@@ -1052,7 +1057,7 @@ class PlanningGraph:
         Returns:
             (float): czas dojazdu od start_node do end_node
         """
-        # self.block_other_pois(start_node, end_node)
+        self.block_other_pois(start_node, end_node)
         if start_node == end_node:
             return 0
         else:
@@ -1321,7 +1326,7 @@ class Dispatcher:
         """
         robot = self.robots_plan.get_robot_by_id(robot_id)
         if robot.planning_on and robot.is_free:
-            print("zxc")
+            # print("zxc")
             # robot wykonal fragment zachowania lub ma przydzielone zupelnie nowe zadanie
             # weryfikacja czy kolejna akcja jazdy krawedzia moze zostac wykonana
             start_node = robot.get_current_node()
