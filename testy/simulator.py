@@ -159,10 +159,11 @@ class Task(disp.Task):
         self.start_time = task_data["start_time"]
         self.behaviours = [disp.Behaviour(raw_behaviour) for raw_behaviour in task_data[self.PARAM["BEHAVIOURS"]]]
         self.behaviours_dict = task_data["behaviours"]
-        self.curr_behaviour_id = task_data["current_behaviour_index"]
+        self.current_behaviour_index = task_data["current_behaviour_index"]
         self.status = task_data["status"]
         self.weight = task_data["weight"]
         self.priority = task_data["priority"]
+        self.index = 0
 
     def set_in_progress(self):
         self.status = self.STATUS_LIST["IN_PROGRESS"]
@@ -171,15 +172,15 @@ class Task(disp.Task):
         """
         Odpowiada za przypisanie kolejnego id zachowania do wykonania
         """
-        if self.curr_behaviour_id == (len(self.behaviours_dict)-1):
+        if self.current_behaviour_index == (len(self.behaviours_dict) - 1):
             # zakonczono zadanie
             self.status = self.STATUS_LIST["DONE"]
         else:
             # zakonczono zachowanie, ale nie zadanie
-            self.curr_behaviour_id = self.curr_behaviour_id + 1
+            self.current_behaviour_index = self.current_behaviour_index + 1
 
     def check_if_behaviour_is_go_to(self):
-        behaviour = self.behaviours_dict[self.curr_behaviour_id]
+        behaviour = self.behaviours_dict[self.current_behaviour_index]
         is_go_to = "to" in behaviour["parameters"]
         return is_go_to
 
@@ -203,7 +204,7 @@ class Supervisor:
         self.update_robots_on_edge(robots_state_list)
         self.update_tasks_states(robots_state_list)
         robots = convert_robots_state_to_dispatcher_format(robots_state_list)
-        # self.plan = dispatcher.get_plan_all_free_robots(self.graph, robots, self.get_task_for_dispatcher())
+
         self.plan = dispatcher.get_plan_all_free_robots(self.graph, robots, self.tasks)
         self.start_tasks()
 
@@ -211,14 +212,14 @@ class Supervisor:
     # def get_task_for_dispatcher(self):
     #     tasks = []
     #     for task in self.tasks:
-    #         tasks.append({"id": task.id, "current_behaviour_index": task.curr_behaviour_id, "robot": task.robot_id,
+    #         tasks.append({"id": task.id, "current_behaviour_index": task.current_behaviour_index, "robot": task.robot_id,
     #                       "start_time": task.start_time, "status": task.status, "weight": task.weight,
     #                       "behaviours": task.behaviours})
     #     return tasks
 
     # OK
     def print_graph(self, plot_size=(45, 45)):
-        graphData = self.graph.get_graph()
+        graphData = self.graph.graph
         plt.figure(figsize=plot_size)
         node_pos = nx.get_node_attributes(graphData, "pos")
 
@@ -312,18 +313,17 @@ class Supervisor:
         for robot_id in self.plan:
             plan = self.plan[robot_id]
             for task in self.tasks:
-                if plan["taskId"] == task.id and task.curr_behaviour_id == -1:
+                if plan["taskId"] == task.id and task.current_behaviour_index == -1:
                     task.robot_id = robot_id
                     task.status = Task.STATUS_LIST["IN_PROGRESS"]
-                    task.curr_behaviour_id = 0
+                    task.current_behaviour_index = 0
                     break
 
     # OK
     def get_robots_command(self):
         """
         Zwraca liste komend przekazywanych do symulatora robotow.
-        tasksList ([{'robotId': int, 'nextEdge': (int, int), 'taskId': int, 'endBeh': bool,
-                     "taskDuration": int},...])
+        tasksList ([{'robotId': int, 'nextEdge': (int, int), 'taskId': int, 'endBeh': bool, "taskDuration": int},...])
         """
         tasksList = []
         for i in self.plan.keys():
@@ -366,7 +366,7 @@ class Supervisor:
             table = '\n'.join([header] + data)
             print("{:<11}{:<11}{:<7}{:<30}{:<15}{:<10}{}".format(str(task.id), str(task.robot_id), str(task.weight),
                                                                  str(task.start_time), str(task.status),
-                                                                 str(task.curr_behaviour_id), table))
+                                                                 str(task.current_behaviour_index), table))
 
         print("\n---------------------------Nowy plan---------------------------")
         print("{:<9} {:<8} {:<12} {:<7} {:<5}".format('robotId', 'taskId', 'next edge', 'endBeh', 'taskDuration'))
