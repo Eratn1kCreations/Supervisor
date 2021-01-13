@@ -821,10 +821,10 @@ class SupervisorGraphCreator(DataValidator):
                     and b_node_type == base_node_section_type["intersection"]:
                 # oba wezly sa skrzyowaniami, mozna od razu utworzyc docelowa krawedz grafu laczaca je
                 self.graph.add_node(self.graph_node_id, nodeType=new_node_type["intersection_out"],
-                                    sourceNode=source_node_id[0], color=node_color["out"], poiId=0)
+                                    sourceNode=source_node_id[0], color=node_color["out"], poiId="0")
                 self.graph_node_id = self.graph_node_id + 1
                 self.graph.add_node(self.graph_node_id, nodeType=new_node_type["intersection_in"],
-                                    sourceNode=source_node_id[-1], color=node_color["in"], poiId=0)
+                                    sourceNode=source_node_id[-1], color=node_color["in"], poiId="0")
                 self.graph.add_edge(self.graph_node_id - 1, self.graph_node_id, id=self.edge_id, weight=0,
                                     behaviour=Behaviour.TYPES["goto"], edgeGroupId=self.reduced_edges[i]["edgeGroupId"],
                                     wayType=self.reduced_edges[i]["wayType"], sourceNodes=source_node_id,
@@ -835,7 +835,7 @@ class SupervisorGraphCreator(DataValidator):
                     a_node_type != base_node_section_type["intersection"]:
                 # wezel koncowy krawedzi jest typu intersection, a drugi wezel jest innego typu, moze byc to POI
                 self.graph.add_node(self.graph_node_id, nodeType=new_node_type["intersection_in"],
-                                    sourceNode=source_node_id[-1], color=node_color["in"], poiId=0)
+                                    sourceNode=source_node_id[-1], color=node_color["in"], poiId="0")
                 self.graph_node_id = self.graph_node_id + 1
                 g_node_id = self.get_connected_graph_node_id(source_node_id[0])
                 self.graph.add_edge(g_node_id, self.graph_node_id - 1, id=self.edge_id, weight=0,
@@ -850,7 +850,7 @@ class SupervisorGraphCreator(DataValidator):
                     and b_node_type != base_node_section_type["intersection"]:
                 # wezel poczatkowy krawedzi jest typu intersection, a drugi wezel jest innego typu, moze byc to POI
                 self.graph.add_node(self.graph_node_id, nodeType=new_node_type["intersection_out"],
-                                    sourceNode=source_node_id[0], color=node_color["out"], poiId=0)
+                                    sourceNode=source_node_id[0], color=node_color["out"], poiId="0")
                 self.graph_node_id = self.graph_node_id + 1
                 g_node_id = self.get_connected_graph_node_id(source_node_id[-1], edge_start_node=False)
                 self.graph.add_edge(self.graph_node_id - 1, g_node_id, id=self.edge_id, weight=0,
@@ -1414,7 +1414,7 @@ class SupervisorGraphCreator(DataValidator):
             self.graph.nodes[i]["pose"] = self.get_ros_pose_msg(start_pos, end_pos, node_pos)
 
         for node in self.graph.nodes(data=True):
-            if "pose" not in node[1] and node[1]["poiId"] != 0:
+            if "pose" not in node[1] and node[1]["poiId"] != "0":
                 poi_pose = [poi["pose"] for poi in pois_raw_data if poi["id"] == node[1]["poiId"]][0]
                 self.graph.nodes[node[0]]["pose"] = poi_pose
 
@@ -1468,10 +1468,15 @@ class SupervisorGraphCreator(DataValidator):
         # nx.draw_networkx(self.graph, node_pos,node_color = node_col, node_size=550,font_size=15,
         # with_labels=True,font_color="w", width=2)
 
-        nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=3000, font_size=20,
-                         with_labels=True, font_color="w", width=4)
-        nx.draw_networkx_edge_labels(self.graph, node_pos,
-                                     edge_labels=max_robots, font_size=30)
+        # nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=3000, font_size=20,
+        #                  with_labels=True, font_color="w", width=4)
+        # nx.draw_networkx_edge_labels(self.graph, node_pos,
+        #                              edge_labels=max_robots, font_size=30)
+
+        nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=200, font_size=10,
+                                          with_labels=True, font_color="w", width=4)
+        nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=max_robots, font_size=10)
+
 
         # nx.draw_networkx(self.graph, node_pos,edge_color= edge_col, node_color = node_col, node_size=3000,
         # font_size=25,with_labels=True,font_color="w", width=4)
