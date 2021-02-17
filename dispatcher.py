@@ -4,7 +4,7 @@ import networkx as nx
 import graph_creator as gc
 import numpy as np
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class DispatcherError(Exception):
@@ -108,6 +108,11 @@ class Behaviour:
             return None
 
     def validate_data(self, behaviour_data):
+        """
+        Parameters:
+            behaviour_data (dict): slownik z parametrami zachowania
+                dict {"id" string: , "parameters": {"name": Behaviour.TYPES[nazwa_typu], "to": "id_poi"})
+        """
         beh_type = type(behaviour_data)
         if beh_type is not dict:
             raise WrongBehaviourInputData("Behaviour should be dict type but {} was given.".format(beh_type))
@@ -185,12 +190,12 @@ class Task:
 
     def __init__(self, task_data):
         """
-        Attributes:
+        Parameters:
             task_data ({"id": string, "behaviours": [Behaviour, Behaviour, ...],
                   "robotId": string, "start_time": time, "priority": int, "status": STATUS_LIST[status},
                   "weight": int): zadanie dla robota
         """
-        self.validate_input(task_data)
+        # self.validate_input(task_data)
         self.id = task_data[self.PARAM["ID"]]
         self.robot_id = task_data[self.PARAM["ROBOT_ID"]]
         self.start_time = task_data[self.PARAM["START_TIME"]]
@@ -249,7 +254,7 @@ class Task:
 
     def validate_input(self, task_data):
         """
-        Attributes:
+        Parameters:
             task_data ({"id": string, "behaviours": [Behaviour, Behaviour, ...],
                   "robotId": string, "timeAdded": time, "PRIORITY": Task.PRIORITY["..."]}): zadanie dla robota
         """
@@ -352,6 +357,19 @@ class Task:
             data += behaviour.get_info()
         return data
 
+    def is_planned_swap(self):
+        """
+        Sprawdza czy zadanie wymiany jest zadaniem pochodzącym z planu.
+        Returns:
+             (bool): True - zadanie z planu wymian, False - inne zadanie lub wymiana utworzona w inny sposob
+        """
+        for behaviour in self.behaviours:
+            if "swap" in self.id:
+                if behaviour.get_type() == Behaviour.TYPES["bat_ex"]:
+                    return True
+
+        return False
+
 
 class TasksManager:
     """
@@ -362,6 +380,9 @@ class TasksManager:
         tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
     """
 
+    #
+    # TODO 1. Oddzielić zadania wymiany baterii od reszty
+    # slownik id robota: zadanie wymiany baterii
     def __init__(self, tasks):
         """
         Parameters:
@@ -430,6 +451,96 @@ class TasksManager:
         return [task for task in self.tasks if task.robot_id is None and not task.check_if_task_started()]
 
 
+class Battery:
+    """
+    Klasa przechowująca informacje o baterii
+    Attributes:
+        max_capacity (float): maksymalna pojemnosc baterii w [Ah]
+        capacity (float): pojemnosc baterii w [Ah]
+        drive_usage (float): zuzycie baterii w trakcie jazdy w [A/h]
+        stand_usage (float): zuzycie baterii w trakcie postoju w [A/h]
+        remaining_working_time (float): pozostaly czas pracy na baterii przy ktorym pojawia sie poziom ostrzegawczy [min]
+    """
+    def __init__(self):
+        self.max_capacity = 40.0
+        self.capacity = 40.0
+        self.drive_usage = 5.0
+        self.stand_usage = 3.5
+        self.remaining_working_time = 20.0 # [min]
+
+    def __str__(self):
+        return "Battery info: max_cappacity={max_capacity:.2f}   cappacity={capacity:.2f}" \
+               "warning_capacity={warning_lvl:.2f}   critical_capacity={critical_lvl:.2f}   " \
+               "drive_usage={drive_use:.2f}  " \
+               "stand_usage={stand_use:.2f}  " \
+               "remaining_working_time={rem_time:.2f}".format(max_capacity = self.max_capacity,
+                                                              capacity = self.capacity,
+                                                              warning_lvl = self.get_warring_capacity(),
+                                                              critical_lvl=self.get_critical_capacity(),
+                                                              drive_use = self.drive_usage,
+                                                              stand_use = self.stand_usage,
+                                                              rem_time = self.remaining_working_time)
+
+    def get_warning_capacity(self):
+        """
+        Zwraca pojemnosc baterii przy ktorej przekroczony zostaje poziom ostrzegawczy.
+
+        Returns:
+            (float): pojemnosc baterii w Ah
+        """
+        return self.remaining_working_time/60*self.drive_usage
+
+    def get_critical_capacity(self):
+        """
+        Zwraca pojemnosc baterii przy ktorej przekroczony zostaje poziom krytyczny. Przy tym poziomie powinien zostac
+        zalogowany blad, gdyz grozi on wylaczeniem robota.
+
+        Returns:
+            (float): pojemnosc baterii w Ah
+        """
+        return (self.remaining_working_time/2)/60*self.drive_usage
+
+    def get_time_to_warn_allert(self):
+        """
+        Returns:
+             (float): Zwraca czas w minutach do osiągnięcia poziomu ostrzegawczego. Dla przekroczenia progu
+                      ostrzegawczego zwracana jest wartosc -1.
+        """
+        warn_capacity = self.get_warning_capacity()
+        if warn_capacity <= self.capacity:
+            return (self.capacity - warn_capacity)/self.drive_usage*60
+        else:
+            return -1
+
+    def get_time_to_critical_allert(self):
+        """
+        Returns:
+             (float): Zwraca czas w minutach do osiągnięcia poziomu krytycznego. Dla przekroczenia progu
+                      krytycznego zwracana jest wartosc -1.
+        """
+        critical_capacity = self.get_critical_capacity()
+        if critical_capacity <= self.capacity:
+            return (self.capacity - critical_capacity)/self.drive_usage*60
+        else:
+            return -1
+
+    def is_enough_capacity_before_critical_alert(self, drive_time_min, stand_time_min):
+        """
+        Sprawdza czy robot posiada wystarczajaca liczbe energii zanim pojawi sie ostrzezenie krytyczne. Pod uwage
+        brane jest zuzycie energii w trakcie jazdy i postoju zgodnie z planowanym czasem jazdy i postoju.
+
+        Parameters:
+            drive_time_min (float): czas jazdy w minutach
+            stand_time_min (float): czas postoju w minutach
+
+        Returns:
+            (bool): zwraca informacje o wystarczajacej liczbie energii
+        """
+        used_capacity = drive_time_min/60*self.drive_usage + stand_time_min/60*self.stand_usage # zamiana z minut na godziny
+        predicted_capacity_lvl = self.capacity - used_capacity
+        return predicted_capacity_lvl > self.get_critical_capacity()
+
+
 class Robot:
     """
     Klasa przechowujaca informacje o pojedynczym robocie do ktorego beda przypisywane zadania
@@ -437,12 +548,14 @@ class Robot:
     Attributes:
         id (string): id robota
         edge ((string,string)): krawedz na ktorej aktualnie znajduje sie robot
+        poi_id (string): id poi w ktorym znajduje sie robot
         planning_on (bool): informuje czy robot jest w trybie planownaia
         is_free (bool): informuje czy robot aktualnie wykonuje jakies zachowanie czy nie
         time_remaining (float/None): czas do ukonczenia zachowania
         task (Task): zadanie przypisane do robota
         next_task_edge ((string,string)): informuje o kolejnej krawedzi przejscia ktora nalezy wyslac do robota
         end_beh_edge (bool): informuje czy zachowanie po przejsciu krawedzia zostanie ukonczone
+        battery (Battery): bateria w robocie
     """
     def __init__(self, robot_data):
         """
@@ -450,7 +563,7 @@ class Robot:
             robot_data ({"id": string, "edge": (string, string), "planningOn": bool, "isFree": bool,
                          "timeRemaining": float/None}): slownik z danymi o robocie
         """
-        self.validate_input(robot_data)
+        # self.validate_input(robot_data)
         self.id = robot_data["id"]
         self.edge = robot_data["edge"]
         self.poi_id = robot_data["poiId"]
@@ -460,7 +573,7 @@ class Robot:
         self.task = None
         self.next_task_edge = None
         self.end_beh_edge = None
-
+        self.battery = Battery()
         self.check_planning_status()
 
     def validate_input(self, data):
@@ -541,7 +654,10 @@ class Robot:
 
     def get_info(self):
         """
-        Wyswietla informacje o robocie.
+        Zwraca informacje o robocie.
+
+        Returns:
+            data (string): informacje o robocie
         """
         data = "id: " + str(self.id) + ", edge: " + str(self.edge) + ", planning_on: " + str(self.planning_on) + "\n"
         data += "is free: " + str(self.is_free) + ", time remaining: " + str(self.time_remaining) + "\n"
@@ -556,14 +672,14 @@ class RobotsPlanManager:
     Klasa obslugujaca przypisywanie zadan do robotow i wyciaganie informacji o robotach niezbednych do planowania zadan.
 
     Attributes:
-        robots ({"id": Robot, "id": Robot, ...}): slownik z lista robotow do ktorych beda przypisywane zadania
+        robots ({"id": Robot, "id": Robot, ...}): slownik z robotami do ktorych beda przypisywane zadania
 
     """
     def __init__(self, robots, base_poi_edges):
         """
         Parameters:
-             robots ({ "id":Robot, "id": Robot, ...]): przekazana lista robotow do planowania zadan
-             base_poi_edges ({poi_id: graph_edge(tuple), ...}) : lista z krawedziami bazowymi do ktorych nalezy
+             robots ({ "id":Robot, "id": Robot, ...]): slownik robotow do planowania zadan
+             base_poi_edges ({poi_id: graph_edge(tuple), ...}) : slownik z krawedziami bazowymi do ktorych nalezy
                 przypisac robota, jesli jest on w POI
         """
         self.robots = {}
@@ -572,8 +688,8 @@ class RobotsPlanManager:
     def set_robots(self, robots, base_poi_edges):
         """
         Parameters:
-             robots ({ "id":Robot, "id": Robot, ...]): przekazana lista robotow do planowania zadan
-            base_poi_edges ({poi_id: graph_edge(tuple), ...}) : lista z krawedziami bazowymi do ktorych nalezy
+             robots ({ "id":Robot, "id": Robot, ...]): slownik robotow do planowania zadan
+            base_poi_edges ({poi_id: graph_edge(tuple), ...}) : slownik z krawedziami bazowymi do ktorych nalezy
                 przypisac robota, jesli jest on w POI
         """
         self.robots = {}
@@ -611,7 +727,6 @@ class RobotsPlanManager:
     def set_task(self, robot_id, task):
         """
         Przypisuje zadanie dla robota o podanym id. Jeśli go nie ma to blad.
-        # TODO walidacja czy juz nie przypisano do jakiegos robota zadania o podanym ID
 
         Parameters:
             robot_id (string): id robota
@@ -717,7 +832,7 @@ class RobotsPlanManager:
         Zwraca slownik robotow wraz z POI do ktorych aktualnie jada roboty
 
         Returns:
-            ({robot_id: poi_id, ...}): lista robotow z POI aktualnego celu
+            ({robot_id: poi_id, ...}): slownik robotow z POI aktualnego celu
         """
         busy_robots = {}
         for robot in self.robots.values():
@@ -750,7 +865,7 @@ class PoisManager:
         """
         for i in graph.source_nodes:
             node = graph.source_nodes[i]
-            if node["poiId"] != "0":  # TODO zweryfikowac wartosc dla wezla bez POI
+            if node["poiId"] != "0":
                 self.pois[node["poiId"]] = node["type"]
 
     def check_if_queue(self, poi_id):
@@ -817,8 +932,6 @@ class PlanningGraph:
         Parameters:
             robot_node (string): wezel grafu z supervisora w ktorym aktualnie jest robot
             target_node (string): wezel grafu z supervisora do ktorego zmierza robot
-
-        # TODO do przerobki lista nieblokujacych POI, zamiast 0 ma byc wartosc dla krawedzi niezwiazanych z POI np None
         """
         no_block_poi_ids = ["0", self.graph.nodes[robot_node]["poiId"], self.graph.nodes[target_node]["poiId"]]
         for edge in self.graph.edges(data=True):
@@ -915,12 +1028,12 @@ class PlanningGraph:
 
     def get_max_allowed_robots_using_pois(self):
         """
-        Zwraca liste zawierajaca maksymalna liczbe robotow, ktora moze byc obslugiwana przez dany typ POI.
+        Zwraca slownik zawierajacy maksymalna liczbe robotow, ktora moze byc przypisana do POI.
         Przekroczenie tej liczby oznacza, ze roboty moga zaczac sie kolejkowac na glownym szlaku komunikacyjnym.
 
         Returns:
-            ({poiId: string, poiId2: string,...}): Slownik z liczba robotow dla ktorego kluczem jest ID POI z bazy a
-            maksymalna liczba robotow jaka moze oczekiwac i byc obslugiwana przy stanowisku.
+            ({poiId: int, poiId2: int,...}): Slownik z liczba robotow dla ktorego kluczem jest ID POI z bazy, a
+            wartoscia maksymalna liczba robotow jaka moze oczekiwac i byc obslugiwana przy stanowisku.
         """
         max_robot_pois = {i: 0 for i in self.pois}
         connected_edges = [edge for edge in self.graph.edges(data=True) if "connectedPoi" in edge[2]]
@@ -1023,7 +1136,7 @@ class PlanningGraph:
             (string): zwraca id poi, jesli krawedz zwiazana jest z POI, jesli nie to None
         """
         poi_node = self.graph.nodes[edge[1]]['poiId']
-        if poi_node != "0":  # TODO weryfikacja dla jakich wartosci poi node wezel nie ma poi None czy "0"
+        if poi_node != "0":
             return poi_node
         else:
             return None
@@ -1066,7 +1179,7 @@ class PlanningGraph:
     def get_base_pois_edges(self):
         """
         Returns:
-            ({poi_id: graph_edge(tuple), ...}) : lista z krawedziami bazowymi do ktorych nalezy
+            ({poi_id: graph_edge(tuple), ...}) : slownik z krawedziami bazowymi do ktorych nalezy
              przypisac robota, jesli jest on w POI
         """
         base_poi_edges = {}
@@ -1092,6 +1205,80 @@ class PlanningGraph:
                 raise PlaningGraphError("Input graph wrong structure.")
         return base_poi_edges
 
+    def select_next_task(self, task, swap_task, robot):
+        """
+        Wybiera zadanie dla robota. Jesli robotowi wystarczy energii i nie minal planowany czas wymiany na wykonanie
+        zadania to jest mu ono przydzielane, a jesli nie to przydzielane jest zadanie wymiany baterii.
+
+        Parameters:
+            task (Task): zadanie dla robota, dojazdy do stanowisk
+            swap_task (Task): zadanie wymiany baterii
+            robot (Robot): robot dla, ktorego ma byc przydzielone zadanie
+
+        Returns:
+            (Task): wybrane zadanie dla robota
+        """
+        task_travel_time = self._get_task_travel_stands_time(robot.edge[1], task)
+        swap_task_time = self._get_task_travel_stands_time(task_travel_time["end_node"], swap_task)
+        drive_time = (task_travel_time["drive_time"] + swap_task_time["drive_time"])/60 # zamiana na minuty
+        stand_time = (task_travel_time["stand_time"] + swap_task_time["stand_time"])/60 # zamiana na minuty
+        total_time = drive_time + stand_time
+        is_no_battery_critical_allert = robot.battery.is_enough_capacity_before_critical_alert(drive_time, stand_time)
+
+        now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ("%Y-%m-%d %H:%M:%S"))
+        swap_time = datetime.strptime(swap_task.start_time,("%Y-%m-%d %H:%M:%S"))
+
+        time_to_swap = (swap_time - now)/timedelta(minutes=1)
+        if time_to_swap < total_time:
+            # zadanie wymiany powinno zostac zlecone i przypisane do robota:
+            return swap_task
+        elif not is_no_battery_critical_allert:
+            # zadanie wymiany musi zostac zlecone nawet, jesli czas planowanej wymiany nie zostal przekroczony
+            # robot ma znalezc sie jak najblizej stacji wymiany, aby na wypadek calkowitego rozladowania baterii
+            # mozna bylo wziac naladowana ze stacji
+            return swap_task
+        else:
+            return task
+
+    def _get_task_travel_stands_time(self, node_id, task):
+        """
+        Parameters:
+            node_id (string): id wezla grafu rozszerzonego od ktorego wyliczane bedzie pierwsze zachowanie goto
+            task (Task): zadanie dla robota
+
+        Returns:
+            ({"drive_time": float, "stand_time": float, "end_node": string}): czasy postoju, aktywnej jazdy oraz wezel,
+                w ktorym znajdzie sie robot po ukonczeniu zadania
+        """
+
+        drive_time = 0.0
+        stand_time = 0.0
+        last_node = node_id
+        last_poi_id = task.get_poi_goal()
+        poi_type = self.pois[last_poi_id]
+
+        for behaviour in task.behaviours:
+            if behaviour.get_type() == Behaviour.TYPES["goto"]:
+                last_poi_id = behaviour.get_poi()
+                new_node_id = self.get_end_go_to_node(last_poi_id, self.pois[last_poi_id])
+                self.block_other_pois(last_node, new_node_id)
+                drive_time += self.get_path_length(last_node, new_node_id)
+                last_node = new_node_id
+            elif behaviour.get_type() == Behaviour.TYPES["dock"]:
+                new_node_id = self.get_end_docking_node(last_poi_id)
+                drive_time += self.get_path_length(last_node, new_node_id)
+                last_node = new_node_id
+            elif behaviour.get_type() == Behaviour.TYPES["wait"] or behaviour.get_type() == Behaviour.TYPES["bat_ex"]:
+                new_node_id = self.get_end_wait_node(last_poi_id, self.pois[last_poi_id])
+                stand_time += self.get_path_length(last_node, new_node_id)
+                last_node = new_node_id
+            elif behaviour.get_type() == Behaviour.TYPES["undock"]:
+                new_node_id = self.get_end_undocking_node(last_poi_id)
+                drive_time += self.get_path_length(last_node, new_node_id)
+                last_node = new_node_id
+
+        return {"drive_time": drive_time, "stand_time": stand_time, "end_node": last_node}  # zwracane czasy w [s]
+
 
 class Dispatcher:
     """
@@ -1106,6 +1293,7 @@ class Dispatcher:
             planownaia
         unanalyzed_tasks_handler (TasksManager): zawiera informacje o zadaniach, ktore nalezy przeanalizowac
             i przypisac do robotow
+        swap_tasks ({robot_id: Task, ...}): slownik zadan z zaplanowanymi wymianami baterii
     """
 
     def __init__(self, graph_data, robots):
@@ -1114,11 +1302,7 @@ class Dispatcher:
 
         Parameters:
             graph_data (SupervisorGraphCreator): wygenerwany rozszerzony graf do planowania kolejnych zachowan robotow
-            robots ({"id": Robot, "id": Robot, ...}): slownik z lista robotow do ktorych beda przypisywane zadania
-
-        TODO
-            - wchodzi lokalizacja robota, jako edge moze wejsc id POI, które należy zastąpić odpowiednią krawędzią na
-            której jest robot
+            robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
         """
         self.planning_graph = PlanningGraph(graph_data)
         self.pois = PoisManager(graph_data)
@@ -1127,6 +1311,7 @@ class Dispatcher:
         self.init_robots_plan(robots)
 
         self.unanalyzed_tasks_handler = None
+        self.swap_tasks = {robot.id: None for robot in self.robots_plan.get_free_robots()}
 
     def get_plan_all_free_robots(self, graph_data, robots, tasks):
         """
@@ -1134,7 +1319,7 @@ class Dispatcher:
 
         Parameters:
             graph_data (SupervisorGraphCreator): wygenerwany rozszerzony graf do planowania kolejnych zachowan robotow
-            robots ({"id": Robot, "id": Robot, ...}): slownik z lista robotow do ktorych beda przypisywane zadania
+            robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
 
         Returns:
@@ -1158,7 +1343,7 @@ class Dispatcher:
         wykonane
         Parameters:
             graph_data (SupervisorGraphCreator): wygenerwany rozszerzony graf do planowania kolejnych zachowan robotow
-            robots ({"id": Robot, "id": Robot, ...}): slownik z lista robotow do ktorych beda przypisywane zadania
+            robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
             robot_id (string): id robota dla ktorego ma byc zwrocony plan
 
@@ -1181,12 +1366,13 @@ class Dispatcher:
         Ustawia plan dla robotow.
 
         Parameters:
-            robots ({"id": Robot, "id": Robot, ...}): slownik z lista robotow do ktorych beda przypisywane zadania
+            robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
         """
         self.set_tasks(tasks)
         self.init_robots_plan(robots)
         self.set_tasks_doing_by_robots()
+        self.separate_swap_tasks()
         self.set_task_assigned_to_robots()
         self.set_other_tasks()
 
@@ -1194,9 +1380,10 @@ class Dispatcher:
         """Ustawia roboty aktywnie dzialajace w systemie tzn. podlegajace planowaniu i przydzielaniu zadan.
 
         Parameters:
-            robots ({"id": Robot, "id": Robot, ...}): slownik z lista robotow do ktorych beda przypisywane zadania
+            robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
         """
         self.robots_plan = RobotsPlanManager(robots, self.planning_graph.get_base_pois_edges())
+        self.swap_tasks = {robot.id: None for robot in self.robots_plan.get_free_robots()}
 
     def set_tasks(self, tasks):
         """
@@ -1205,7 +1392,21 @@ class Dispatcher:
         Parameters:
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
         """
+
         self.unanalyzed_tasks_handler = TasksManager(tasks)
+
+    def separate_swap_tasks(self):
+        """
+        Oddziela zadania do wykonania w POI od zadan wymiany baterii.
+        """
+        tasks_to_remove = []
+        for task in self.unanalyzed_tasks_handler.tasks:
+            if task.is_planned_swap():
+                self.swap_tasks[task.robot_id] = task
+                tasks_to_remove.append(task.id)
+
+        for i in tasks_to_remove:
+            self.unanalyzed_tasks_handler.remove_tasks_by_id(i)
 
     def set_tasks_doing_by_robots(self):
         """
@@ -1267,9 +1468,14 @@ class Dispatcher:
             for robot in self.robots_plan.get_free_robots():
                 if robot.task is None:
                     if unanalyzed_task.robot_id == robot.id and not unanalyzed_task.check_if_task_started():
-                        self.robots_plan.set_task(robot.id, unanalyzed_task)
+                        task = unanalyzed_task
+                        if robot.id in self.swap_tasks:
+                            swap_task = self.swap_tasks[robot.id]
+                            if type(swap_task) == Task:
+                                task = self.planning_graph.select_next_task(unanalyzed_task, swap_task, robot)
+                        self.robots_plan.set_task(robot.id, task)
                         self.set_task_edge(robot.id)
-                        tasks_id_to_remove.append(unanalyzed_task.id)
+                        tasks_id_to_remove.append(task.id)
 
         self.unanalyzed_tasks_handler.remove_tasks_by_id(tasks_id_to_remove)
 
@@ -1397,7 +1603,7 @@ class Dispatcher:
         Zwraca liste robotow, ktore dla aktualnego przydzialu zadan sa zablokowane przez roboty bez zadan.
 
         Returns:
-            list ([robotId,...]): lista zawierajaca ID robotow, ktore blokuja POI.
+            ([robotId,...]): lista zawierajaca ID robotow, ktore blokuja POI.
         """
         temp_blocked_pois = self.pois.get_raw_pois_dict()
         for robot in self.robots_plan.get_free_robots():
@@ -1424,7 +1630,7 @@ class Dispatcher:
         POI to rowniez jest uwzgledniana.
 
         Returns:
-            robotsToPoi ({poiId: string, ...}): Slownik z liczba robotow dla ktorego kluczem jest ID POI z bazy
+            ({poiId: string, ...}): Slownik z liczba robotow dla ktorego kluczem jest ID POI z bazy
                 a wartoscia liczba robotow zmierzajaca/bedaca do danego POI
         """
         robots_to_poi = self.pois.get_raw_pois_dict()
@@ -1467,7 +1673,7 @@ class Dispatcher:
             robots_numbers (int): liczba robotow dla ktorych powinny byc wygenerowane zadania
 
         Returns:
-            freeTasks ([Task,Task,...]): lista zadan, ktore nalezy przydzielic do robotow. Liczba zadan moze
+            ([Task,Task,...]): lista zadan, ktore nalezy przydzielic do robotow. Liczba zadan moze
                 byc mniejsza niz liczba robotow co wynika z: mniejszej liczby zadan niz robotow; nie istnieja
                 zadania w systemie, ktorych przypisanie powoduje spelnienie warunku, ze dla danego POI liczba
                 przypisanych robotow jest mniejsza od maksymalnej liczby obslugiwanej w danym POI.
@@ -1550,7 +1756,7 @@ class Dispatcher:
                 od kolejnego zadania do wykonania
 
         Returns:
-            goalNode (string): id wezla z grafu rozszerzonego na ktorym opiera sie tworzenie zadan
+            (string): id wezla z grafu rozszerzonego na ktorym opiera sie tworzenie zadan
         """
         poi_id = task.get_poi_goal()
         behaviour = task.get_current_behaviour()

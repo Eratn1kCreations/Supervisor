@@ -608,8 +608,7 @@ class SupervisorGraphCreator(DataValidator):
                 "edgeGroupId" (int): identyfikatory grupy krawedzi
                 "sourceNodes" (list): lista z wezlami na podstawie, ktorych powstala dana krawedz
                 "sourceEdges" (list): lista krawedzi z ktorych zlozona jest dana krawedz
-                "pose" (ROS pose): pozycja robota w wezle ({"position": {"x": , "y": , "z":},
-                                                            "orientation": {"x": , "y": , "z": , "w":}})
+
             Niektore dodatkowe atrybuty krawedzi:
                 "connectedPoi" (string): tylko dla krawedzi nalezacych/ laczacych sie z POI
                 "maxRobots" (int): maksymalna liczba robotow mogaca przebywac na krawedzi z zachowaniem GOTO i nie
@@ -622,6 +621,8 @@ class SupervisorGraphCreator(DataValidator):
                 "color" (node_color["..."]): kolor wezla dla danego typu
                 "poiId" (string): id POI
                 "pos" (float, float): wspolrzedne wezla na mapie
+                "pose" (ROS pose): pozycja robota w wezle ({"position": {"x": , "y": , "z":},
+                                                            "orientation": {"x": , "y": , "z": , "w":}})
         graph_node_id (int): id kolejnego wezla grafu, wartosc inkrementowana z kazdym wprowadzeniem nowego wezla do
             grafu
         edge_group_id (int): id kolejnej grupy krawedzi, z kazda kolejna grupa wartosc jest inkrementowana. Grupa
