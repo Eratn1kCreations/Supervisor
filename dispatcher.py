@@ -215,12 +215,12 @@ class Task:
         Returns:
             (string): id POI w kierunku, ktorego porusza sie robot lub id POI, w ktorym wykonuje zachowanie
         """
-        current_behaviour_to_do = self.get_current_behaviour()
         goal_poi = None
         previous_behaviour = None
-
+        i = 0
+        beh_id = 0 if self.current_behaviour_index == -1 else self.current_behaviour_index
         for behaviour in self.behaviours:
-            if current_behaviour_to_do.id == behaviour.id:
+            if beh_id == i:
                 if behaviour.check_if_go_to():
                     goal_poi = behaviour.get_poi()
                 else:
@@ -230,6 +230,7 @@ class Task:
 
             if behaviour.check_if_go_to():
                 previous_behaviour = behaviour
+            i += 1
 
         return goal_poi if goal_poi is not None else previous_behaviour.get_poi()
 
@@ -1539,7 +1540,6 @@ class Dispatcher:
             end_node = self.get_undone_behaviour_node(robot.task)
             path_nodes = self.planning_graph.get_path(start_node, end_node)
             next_edge = (path_nodes[0], path_nodes[1])
-
             next_group_id = self.planning_graph.get_group_id(next_edge)
 
             base_poi_edges = self.planning_graph.get_base_pois_edges()

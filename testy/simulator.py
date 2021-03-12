@@ -28,6 +28,7 @@ class Robot(disp.Robot):
         """
         self.id = robot_data["id"]
         self.edge = robot_data["edge"]
+        self.poi_id = robot_data["poi_id"]
         self.planning_on = robot_data["planningOn"]
         self.is_free = robot_data["isFree"]
         self.time_remaining = robot_data["timeRemaining"]
@@ -102,7 +103,7 @@ class Robots:
         for robot in self.robots:
             robots_list.append({"id": robot.id, "isFree": robot.is_free, "taskId": robot.task_id,
                                 "edge": robot.edge, "endBeh": robot.end_beh, "planningOn": robot.planning_on,
-                                "timeRemaining": 0})
+                                "timeRemaining": 0, "poi_id": robot.poi_id})
         return robots_list
 
     # OK
@@ -127,11 +128,11 @@ def convert_robots_state_to_dispatcher_format(robots_state_list):
     """
     Parameters:
         robots_state_list ([{"id": int, "isFree": bool, "taskId": int, "edge": (int,int),
-        "endBeh": bool, "planningOn": bool},...]) - stan listy robotow z symulatora
+        "endBeh": bool, "planningOn": bool, "poi_id": string},...]) - stan listy robotow z symulatora
 
     Returns:
-         ({"id": int, "edge": (int, int), "planningOn": bool, "isFree": bool, "timeRemaining": float}):
-                slownik z danymi o robocie
+         ({"id": int, "edge": (int, int), "planningOn": bool, "isFree": bool, "timeRemaining": float,
+          "poi_id": string}): slownik z danymi o robocie
     """
 # "    robotsList = []
 #     for robot in robots_state_list:
@@ -142,7 +143,8 @@ def convert_robots_state_to_dispatcher_format(robots_state_list):
     robots_dict = {}
     for robot in robots_state_list:
         robots_dict[robot["id"]] = Robot({"id": robot["id"], "edge": robot["edge"], "planningOn": robot["planningOn"],
-                                          "isFree": robot["isFree"], "timeRemaining":  robot["timeRemaining"]})
+                                          "isFree": robot["isFree"], "timeRemaining":  robot["timeRemaining"],
+                                          "poi_id": robot["poi_id"]})
 
     return robots_dict
 
@@ -197,7 +199,8 @@ class Supervisor:
         """
         Attributes:
             robots_state_list ([{"id": int, "isFree": bool, "taskId": int, "edge": (int,int),
-                          "endBeh": bool, "planningOn": bool},...]) - stan robotow wychodzacy z symulatora
+                          "endBeh": bool, "planningOn": bool, "poi_id": string},...]) - stan robotow wychodzacy
+                          z symulatora
         """
 
         dispatcher = disp.Dispatcher(self.graph, convert_robots_state_to_dispatcher_format(robots_state_list))
