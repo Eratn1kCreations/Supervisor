@@ -64,7 +64,8 @@ class Behaviour:
         "dock": "DOCK",
         "wait": "WAIT",
         "bat_ex": "BAT_EX",
-        "undock": "UNDOCK"
+        "undock": "UNDOCK",
+        "msg": "MSG"
     }
 
     def __init__(self, behaviour_data):
@@ -561,7 +562,7 @@ class Robot:
     def __init__(self, robot_data):
         """
         Parameters:
-            robot_data ({"id": string, "edge": (string, string), "planningOn": bool, "isFree": bool,
+            robot_data ({"id": string, "edge": (string, string), "poiId" (string), "planningOn": bool, "isFree": bool,
                          "timeRemaining": float/None}): slownik z danymi o robocie
         """
         # self.validate_input(robot_data)
@@ -705,8 +706,11 @@ class RobotsPlanManager:
                     # TODO weryfikacja czy dla danego poi istnieje krawedz na grafie, istnieje w podanym slowniku
                     # wejsciowym
                     #print("robot edge/poi id: ", robot.edge, robot.poi_id)
-                    robot.edge = base_poi_edges[robot.poi_id]
-                self.robots[robot.id] = robot
+                    if robot.poi_id is not None:
+                        robot.edge = base_poi_edges[robot.poi_id]
+                        self.robots[robot.id] = robot
+                else:
+                    self.robots[robot.id] = robot
             # print(robot.edge)
             # print()
 
