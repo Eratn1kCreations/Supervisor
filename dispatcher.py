@@ -698,21 +698,17 @@ class RobotsPlanManager:
         robots_copy = copy.deepcopy(robots)
         for i in robots_copy:
             robot = robots_copy[i]
-            # print(robot.edge)
             if robot.planning_on:
                 if type(robot.edge) is not tuple:
                     # zamiast krawedzi jest POI TODO pobrania POI z innego miejsca i wpisanie odpowiedniej
                     # krawedzi, jesli nie jest ona znana dla danego robota.
                     # TODO weryfikacja czy dla danego poi istnieje krawedz na grafie, istnieje w podanym slowniku
                     # wejsciowym
-                    #print("robot edge/poi id: ", robot.edge, robot.poi_id)
                     if robot.poi_id is not None:
                         robot.edge = base_poi_edges[robot.poi_id]
                         self.robots[robot.id] = robot
                 else:
                     self.robots[robot.id] = robot
-            # print(robot.edge)
-            # print()
 
     def get_robot_by_id(self, robot_id):
         """
@@ -1490,10 +1486,11 @@ class Dispatcher:
         blokujacych POI.
         """
         init_time = time.time()
+        free_robots_in_poi_task_assigned = True
         while True:
 
             free_robots_id = [robot.id for robot in self.robots_plan.get_free_robots()]
-            blocking_robots_id = self.get_robots_id_blocking_poi()
+            blocking_robots_id = self.get_robots_id_blocking_used_poi()
 
             n_free_robots = len(free_robots_id)
             n_blocking_robots = len(blocking_robots_id)
@@ -1504,16 +1501,37 @@ class Dispatcher:
             n_all_tasks = len(all_robots_tasks)
             n_blocking_robots_tasks = len(blocking_robots_tasks)
 
+            all_free_tasks = self.unanalyzed_tasks_handler.get_all_unasigned_unstarted_tasks()
             if n_all_tasks == n_free_robots and n_all_tasks != 0:
                 self.assign_tasks_to_robots(all_robots_tasks, free_robots_id)
                 # przypisywanie zadań zakończone, bo każdy aktywny w systemie robot powinien już mieć zadanie
                 break
             elif n_blocking_robots > 0 and n_blocking_robots_tasks != 0:
+                # przypisanie zadan do robotow blokujacych POI
                 self.assign_tasks_to_robots(blocking_robots_tasks, blocking_robots_id)
             elif n_free_robots > 0 and n_all_tasks != 0:
-                # nie do wszystkich robotow beda przypisane zadania, dlatego najpierw trzeba sprawdzic i
-                # przypisać zadania do robotów blokujących POI
+                # do wolnych robotow przypisanie zadan, jesli robot byl wolny i blokowal POI to traktowany jest jako
+                # blokujacy slot do wyslania robota do POI
                 self.assign_tasks_to_robots(all_robots_tasks, free_robots_id)
+            elif n_free_robots > 0 and len(all_free_tasks) >0 and free_robots_in_poi_task_assigned:
+                # jesli sa dalej wolne roboty w POI to poszukiwane jest pierwsze mozliwe do wykonania zadanie dojazdu
+                # do tego samego POI
+                for robot_id in free_robots_id:
+                    for task in all_free_tasks:
+                        goal_id = task.get_poi_goal()
+                        robot = self.robots_plan.robots[robot_id]
+                        poi = None
+                        if robot.edge is not None:
+                            poi = self.planning_graph.get_poi(robot.edge)
+                        elif robot.edge is None and robot.poi_id is not None:
+                            poi = poi_id
+
+                        if goal_id == poi:
+                            self.robots_plan.set_task(robot_id, task)
+                            self.set_task_edge(robot_id)
+                            self.unanalyzed_tasks_handler.remove_tasks_by_id([task.id])
+                            break
+                free_robots_in_poi_task_assigned = False
             else:
                 # wysłanie pozostałych blokujących robotów na parkingi
                 if n_blocking_robots != 0:
@@ -1537,9 +1555,8 @@ class Dispatcher:
         """
         robot = self.robots_plan.get_robot_by_id(robot_id)
         if robot.planning_on and robot.is_free:
-            # print("zxc")
             # robot wykonal fragment zachowania lub ma przydzielone zupelnie nowe zadanie
-            # weryfikacja czy kolejna akcja jazdy krawedzia moze zostac wykonana
+            # weryfikacja czy koleset jna akcja jazdy krawedzia moze zostac wykonana
             start_node = robot.get_current_node()
             end_node = self.get_undone_behaviour_node(robot.task)
             path_nodes = self.planning_graph.get_path(start_node, end_node)
@@ -1602,9 +1619,9 @@ class Dispatcher:
                 else:
                     self.robots_plan.set_end_beh_edge(robot_id, False)
 
-    def get_robots_id_blocking_poi(self):
+    def get_robots_id_blocking_used_poi(self):
         """
-        Zwraca liste robotow, ktore dla aktualnego przydzialu zadan sa zablokowane przez roboty bez zadan.
+        Zwraca liste robotow blokujacych POI do ktorego aktualnie jada roboty.
 
         Returns:
             ([robotId,...]): lista zawierajaca ID robotow, ktore blokuja POI.
