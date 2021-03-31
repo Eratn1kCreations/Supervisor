@@ -1091,7 +1091,8 @@ class SupervisorGraphCreator(DataValidator):
                                         [0, 0, 1, 0],
                                         [0, 0, 0, 1]])
         node_translation = np.dot(np.dot(translate_to_base_node, rotation_to_way), poi_step_translation)
-        if self.source_nodes[node_before_poi_id]["type"] == base_node_type["waiting-departure"]:
+        if self.source_nodes[node_before_poi_id]["type"] == base_node_type["waiting-departure"]\
+                or self.source_nodes[node_before_poi_id]["type"] == base_node_type["intersection"]:
             s_id = self.graph.nodes[graph_node_id]["sourceNode"]
             nodes_vect.append([self.source_nodes[s_id]["pos"][0], self.source_nodes[s_id]["pos"][1]])
         else:
