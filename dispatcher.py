@@ -1155,9 +1155,9 @@ class PlanningGraph:
             (list): kolejne krawedzie grafu, ktorymi ma sie poruszac robot, aby dotrzec do celu
         """
         self.block_other_pois(start_node, end_node)
-        if start_node == end_node:
-            raise PlaningGraphError("Wrong plan. Start node '{}' should be different than end node '{}'."
-                                    .format(start_node, end_node))
+        # if start_node == end_node:
+        #     raise PlaningGraphError("Wrong plan. Start node '{}' should be different than end node '{}'."
+        #                             .format(start_node, end_node))
         return nx.shortest_path(self.graph, source=start_node, target=end_node, weight='planWeight')
 
     def get_path_length(self, start_node, end_node):
@@ -1560,7 +1560,8 @@ class Dispatcher:
             start_node = robot.get_current_node()
             end_node = self.get_undone_behaviour_node(robot.task)
             path_nodes = self.planning_graph.get_path(start_node, end_node)
-            next_edge = (path_nodes[0], path_nodes[1])
+            next_edge = (path_nodes[0], path_nodes[1]) if len(path_nodes) >= 2 else robot.edge
+
             next_group_id = self.planning_graph.get_group_id(next_edge)
 
             base_poi_edges = self.planning_graph.get_base_pois_edges()
@@ -1614,7 +1615,7 @@ class Dispatcher:
                 if undone_behaviour.get_type() != Behaviour.TYPES["goto"]:  # dock,wait,undock -> pojedyncze przejscie
                     # na grafie
                     self.robots_plan.set_end_beh_edge(robot_id, True)
-                elif len(path_nodes) == 2:
+                elif len(path_nodes) <= 2:
                     self.robots_plan.set_end_beh_edge(robot_id, True)
                 else:
                     self.robots_plan.set_end_beh_edge(robot_id, False)
