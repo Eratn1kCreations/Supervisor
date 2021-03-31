@@ -1,14 +1,25 @@
 import graph_creator as gc
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib
 import copy
 import dispatcher as disp
 import testy.simulator_gui as sim_gui
 from testy.test_data import pois_raw, node_dict, edge_dict
 import time
 from dispatcher import Task, PlanningGraph
+import os
+import datetime
+import csv
+import numpy as np
+import json
+import plotly as py
+import plotly.figure_factory as ff
+import pandas as pd
+from random import randint
+import ipywidgets
 
-SIMULATION_TIME = 5000 # w sekundach
+SIMULATION_TIME = 500 # w sekundach
 TIME_INACTIVE = 120 # w sekundach, czas w ktorym polozenie robotow nie zmienilo sie
 TIME_STEP_SUPERVISOR_SIM = 5 # w sekundach
 TIME_STEP_ROBOT_SIM = 1 # w sekundach
@@ -166,6 +177,8 @@ class Supervisor:
     Attributes:
         graph (SupervisorGraphCreator): rozbudowany graf do obslugi ruchu robotow
         tasks (list(Task)): lista zadan do wykonania przez roboty
+        updated_tasks (list(Task)): lista zaktualizowanych zadan (w trakcie wykonywania, nowe zachowanie,
+                                    zakonczone zadanie)
         tasks_count (int): zlicza liczbe wszystkich zadan pojawiajacych sie w systemie
         done_tasks (int): licznik wykonanych zadan
         done_swap_tasks (int): licznik wykonanych zadan wymiany baterii
@@ -183,6 +196,7 @@ class Supervisor:
         """
         self.graph = graph
         self.tasks = []
+        self.updated_tasks = []
         self.tasks_count = 0
         self.done_tasks = 0
         self.done_swap_tasks = 0
@@ -288,6 +302,7 @@ class Supervisor:
                         else:
                             # zakonczono zachowanie, ale nie zadanie
                             task.current_behaviour_index = task.current_behaviour_index + 1
+                        self.updated_tasks.append(copy.deepcopy(task))
 
         # usuwanie ukonczonych zadan
         for task in self.tasks:
@@ -310,6 +325,7 @@ class Supervisor:
                     task.robot_id = robot_id
                     task.status = disp.Task.STATUS_LIST["IN_PROGRESS"]
                     task.current_behaviour_index = 0
+                    self.updated_tasks.append(copy.deepcopy(task))
                     break
 
     def get_robots_command(self):
@@ -387,10 +403,14 @@ class Simulator:
     def __init__(self, pois_raw):
         self.gui = sim_gui.TestGuiPanel(pois_raw)
 
+
     def config(self, graph):
         tasks = self.gui.task_panel.tasks
         self.robots_sim = RobotsSimulator(self.gui.robots_creator.robots, TIME_STEP_ROBOT_SIM)
-        self.supervisor = Supervisor(graph, tasks, self.robots_sim .get_robots_status())
+        self.supervisor = Supervisor(graph, tasks, self.robots_sim.get_robots_status())
+        self.log_data = DataLogger()
+        self.log_data.save_graph(graph.graph)
+        self.gui.export_log_config(self.log_data.file_path)
 
     def run(self):
         i = 0
@@ -434,14 +454,20 @@ class Simulator:
                     self.gui.top_panel.set_all_tasks_in_progress_number(n_in_progress_tasks)
                     self.gui.top_panel.set_all_tasks_done_number(self.supervisor.done_tasks)
 
-            if i % TIME_STEP_ROBOT_SIM == 0:
+                self.log_data.save_graph_traffic(i, self.supervisor.graph)
+                self.log_data.save_data(i, self.supervisor, self.robots_sim.robots)
                 self.robots_sim.set_tasks(self.supervisor.get_robots_command())
+                self.supervisor.updated_tasks = []
+
+            if i % TIME_STEP_ROBOT_SIM == 0:
                 self.robots_sim.run()
                 if TURN_ON_ANIMATION_UPDATE:
                     discharged, crit_bat, warn_bat = self.robots_sim.get_wrong_battery_state()
                     self.gui.top_panel.set_discharged_robots(discharged)
                     self.gui.top_panel.set_battery_critical_robots(crit_bat)
                     self.gui.top_panel.set_battery_warning_robots(warn_bat)
+
+                self.log_data.save_battery_state(i,self.robots_sim.robots)
 
             if i > SIMULATION_TIME:
                 # przekrocozno czas symulacji
@@ -471,3 +497,461 @@ class Simulator:
                 except:
                     return False
         return True
+
+
+class DataLogger:
+    """
+    Attributes:
+        tasks_start_time (dict): slownik z kluczem bedacym id zadania, a wartoscia {"sim_time": float, "task":disp.Task}
+        behaviours (dict): slownik z kluczem bedacym id zadaniaa,a  wartoscia {"sim_time": float, "task":disp.Task}
+    """
+    def __init__(self):
+        currentDT = datetime.datetime.now()
+        folderName = str(currentDT.month) + "-" + str(currentDT.day) + "_" + str(currentDT.hour) + "-" + str(
+            currentDT.minute) + "-" + str(currentDT.second)
+        self.file_path = os.path.expanduser("~") + "/SMART_logs/dispatcher/" + folderName + "/"
+        self.tasks_start_time = {}
+        self.behaviours = {}
+        self.init_logs_storage()
+
+    def save_data(self, sim_time, supervisor, robots_sim):
+        """
+        Parameters:
+            sim_time (int): czas symulacji
+            supervisor (Supervisor): dane z supervisora
+            tasks (list(disp.Task)): lista zadan ze zaktualizowanym stanem
+            robots (list(RobotSim)): lista z danymi o robotach
+        """
+        for task in supervisor.updated_tasks:
+            robot_edge = None
+            # print("task robot id: ", str(task.robot_id))
+            for robot in robots_sim:
+                if robot.id == task.robot_id:
+                    # print("robot edge ", str(robot.edge))
+                    robot_edge = robot.edge
+                    break
+
+            is_return_go_to = None if robot_edge is None else supervisor.graph.is_return_edge(robot_edge)
+            if task.status == disp.Task.STATUS_LIST["IN_PROGRESS"]:
+                if task.current_behaviour_index == 0:
+                    # rozpoczeto nowe zachowanie z nowego zadania
+                    self.tasks_start_time[task.id] = {"sim_time": sim_time, "task": task}
+                    self.behaviours[task.id] = {"sim_time": sim_time, "task": task}
+                else:
+                    self.save_behaviour(sim_time, self.behaviours[task.id]["task"], is_return_go_to)
+                    self.behaviours[task.id] = {"sim_time": sim_time, "task": task}
+
+            elif task.status == disp.Task.STATUS_LIST["DONE"]:
+                with open(self.file_path + "tasks.csv", 'a') as csv_file:
+                    writer = csv.writer(csv_file)
+                    # ['task_id', 'robot_id', 'start_time', 'end_time', 'behaviours']
+                    data = np.concatenate((task.id, task.robot_id, self.tasks_start_time[task.id]["sim_time"], sim_time,
+                                           self.get_behaviours_string(task)), axis=None)
+                    writer.writerow(data)
+                csv_file.close()
+                self.save_behaviour(sim_time, task, is_return_go_to)
+                del self.tasks_start_time[task.id]
+                del self.behaviours[task.id]
+
+    def get_behaviours_string(self, task):
+        """
+        Dokonuje konwersji zachowan z zadania na tekst
+        Parameters:
+            task (disp.Task): zadanie
+        """
+        behaviours = ""
+        n = len(task.behaviours)
+        i = 1
+        for behaviour in task.behaviours:
+            behaviours += behaviour.get_type()
+            if behaviour.check_if_go_to():
+                behaviours += ": " + str(behaviour.get_poi())
+            if i != n:
+                behaviours += ", "
+            i += 1
+
+        return behaviours
+
+    def init_logs_storage(self):
+        """
+        This function is responsible for initialize log files storage
+        """
+
+        # Create target directory & all intermediate directories if don't exists
+        if not os.path.exists(self.file_path):
+            os.makedirs(self.file_path)
+
+        # ustawienie naglowkow w logu od czasu trwania zadan
+        with open(self.file_path + "tasks.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['task_id', 'robot_id', 'start_time', 'end_time', 'behaviours'])
+        csv_file.close()
+
+        # ustawienie naglowkow w logu od czasu trwania zachowan
+        with open(self.file_path + "behaviours.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['task_id', 'robot_id', 'start_time', 'end_time', 'beh_type', 'poi', 'return_go_to'])
+        csv_file.close()
+
+        # ustawienie naglowkow w logu od monitorowania stanu naladowania baterii
+        with open(self.file_path + "batteries.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['sim_time', 'robot_id', 'battery_lvl', 'warning_lvl', 'critical_lvl', 'max_lvl'])
+        csv_file.close()
+
+        # ustawienie naglowkow w logu od monitorowania obciazenia krawedzi grafu
+        with open(self.file_path + "graph_traffic.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['sim_time', 'group_id', 'start_node_id', 'end_node_id', 'n_robots', 'max_robots', 'traffic'])
+        csv_file.close()
+
+    def save_behaviour(self, sim_time, task, is_return_go_to):
+        with open(self.file_path + "behaviours.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            # ['task_id', 'robot_id', 'start_time', 'end_time', 'beh_type', 'poi']
+            data = np.concatenate((task.id, task.robot_id, self.behaviours[task.id]["sim_time"], sim_time,
+                                   task.get_current_behaviour().get_type(), task.get_poi_goal(), is_return_go_to),
+                                  axis=None)
+            writer.writerow(data)
+        csv_file.close()
+
+    def save_battery_state(self, sim_time, robots):
+        """
+        Parameters:
+            sim_time (float): czas symulacji
+            robots (list(RobotSim)): lista robotow ze stanem baterii
+        """
+
+        with open(self.file_path + "batteries.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            # ['sim_time', 'robot_id', 'battery_lvl', 'warning_lvl', 'critical_lvl', 'max_lvl']
+            for robot in robots:
+                data = np.concatenate((sim_time, robot.id, robot.battery.capacity, robot.battery.get_warning_capacity(),
+                                       robot.battery.get_critical_capacity(), robot.battery.max_capacity), axis=None)
+                writer.writerow(data)
+        csv_file.close()
+
+    def save_graph_traffic(self, sim_time, graph):
+        """
+        Parameters:
+            sim_time (float): czas symulacji
+            graph (SupervisorGraphCreator): rozbudowany graf do obslugi ruchu robotow
+        """
+        with open(self.file_path + "graph_traffic.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            # ['sim_time', 'group_id', 'edge_id', 'n_robots', 'max_robots', 'traffic']
+            for edge in graph.graph.edges(data=True):
+                n_robots = len(edge[2]["robots"])
+                max_robots = edge[2]["maxRobots"] if "maxRobots" in edge[2] else 1
+                traffic = n_robots/max_robots * 100
+                data = np.concatenate((sim_time, edge[2]["edgeGroupId"], edge[0], edge[1], n_robots, max_robots,
+                                       traffic), axis=None)
+                writer.writerow(data)
+        csv_file.close()
+
+    def save_graph(self, graph):
+        json.dump(dict(nodes=[[n, graph.nodes[n]] for n in graph.nodes()],
+                       edges=[[u, v, graph.edges[u,v]] for u, v in graph.edges()]),
+                  open(self.file_path + "graph.json", 'w'), indent=2)
+
+
+class DataAnalyzer:
+    def __init__(self, folder_name):
+        self.file_log_path = os.path.expanduser("~") + "/SMART_logs/dispatcher/" + folder_name + "/"
+        self.file_path = self.file_log_path + "result/"
+        self.today = datetime.datetime.now()
+
+        self.graph_data = pd.read_csv(self.file_log_path + "graph_traffic.csv")
+        self.graph_data = self.graph_data.sort_values(by='sim_time')
+        self.graph = nx.DiGraph()
+        d = json.load(open(self.file_log_path + "graph.json"))
+        self.graph.add_nodes_from(d['nodes'])
+        self.graph.add_edges_from(d['edges'])
+
+        # Create target directory & all intermediate directories if don't exists
+        if not os.path.exists(self.file_path):
+            os.makedirs(self.file_path)
+
+        self.time_slider = ipywidgets.IntSlider()
+        self._update_button = ipywidgets.ToggleButton(value=False, description='update_button', icon='check',
+                                                 layout=ipywidgets.Layout(visibility = 'hidden'))
+
+    def run(self):
+        self.create_tasks_gant()
+        self.create_behaviours_gant()
+        self.create_pois_gant()
+        self.create_graph_edges_no_group()
+        self.create_graph_edges_groups()
+        self.create_battery_lvl_plot()
+
+    def create_tasks_gant(self):
+        csv_data = pd.read_csv(self.file_log_path + "tasks.csv")
+        csv_data = csv_data.sort_values(by='robot_id')
+
+        x_posed = []
+        for index, data in csv_data.iterrows():
+            x_pos = (data["end_time"] - data["start_time"]) / 2 + data["start_time"]
+            x_posed.append(self.today + datetime.timedelta(seconds=x_pos))
+        csv_data["x_poses"] = x_posed
+
+        plot_data = []
+        i = 0
+        for index, data in csv_data.iterrows():
+            task_color = "color1" if i % 2 == 0 else "color2"
+            start_time = self.today + datetime.timedelta(seconds=data["start_time"])
+            end_time = self.today + datetime.timedelta(seconds=data["end_time"])
+            plot_data.append(dict(Task=str(data["robot_id"]), Start=start_time, Finish=end_time,
+                                  Resource=task_color))
+            i += 1
+
+        fig = ff.create_gantt(plot_data, index_col='Resource',
+                              title='Plan wykonanych zadan', show_colorbar=True,
+                              group_tasks=True,
+                              showgrid_x=True, showgrid_y=True)
+        ## add anotations
+        robots_y_value = {}
+        n = len(csv_data.robot_id.unique()) - 1
+        for robot in csv_data.robot_id.unique():
+            robots_y_value[robot] = n
+            n -= 1
+
+        text_font = dict(size=12, color='black')
+        for index, data in csv_data.iterrows():
+            y = robots_y_value[data["robot_id"]]
+            fig['layout']['annotations'] += tuple(
+                    [dict(x=data["x_poses"], y=y, text=str(data["task_id"]), textangle=0, showarrow=False,
+                          font=text_font)])
+
+        fig['layout']['yaxis']['title'] = "ID/nazwa robotów"
+        py.offline.plot(fig, filename=self.file_path + 'tasks_gant.html', auto_open=False)
+
+    def create_behaviours_gant(self):
+        csv_data = pd.read_csv(self.file_log_path + "behaviours.csv")
+        csv_data = csv_data.sort_values(by='robot_id')
+        colors = {'WAIT': 'rgb({},{},{})'.format(255, 0, 0),
+                  'DOCK': 'rgb({},{},{})'.format(0, 0, 255),
+                  'UNDOCK': 'rgb({},{},{})'.format(0, 0, 100),
+                  'BAT_EX': 'rgb({},{},{})'.format(235, 0, 0)}
+
+        x_posed = []
+        for index, data in csv_data.iterrows():
+            x_pos = (data["end_time"] - data["start_time"]) / 2 + data["start_time"]
+            x_posed.append(self.today + datetime.timedelta(seconds=x_pos))
+        csv_data["x_poses"] = x_posed
+
+        plot_data = []
+        i = 0
+        for index, data in csv_data.iterrows():
+            resource_name = (data["beh_type"] + "_" + str(data["poi"])) if data["beh_type"] == "GO_TO" else \
+                data["beh_type"]
+            start_time = self.today + datetime.timedelta(seconds=data["start_time"])
+            end_time = self.today + datetime.timedelta(seconds=data["end_time"])
+            plot_data.append(dict(Task=str(data["robot_id"]), Start=start_time, Finish=end_time,
+                                  Resource=resource_name))
+            if resource_name not in colors:
+                colors[resource_name] = 'rgb({},{},{})'.format(0,randint(0,255),0)
+            i += 1
+
+        fig = ff.create_gantt(plot_data, index_col='Resource',
+                              title='Plan wykonanych zachowan w zadaniach', show_colorbar=True,
+                              group_tasks=True, showgrid_x=True, showgrid_y=True, colors = colors)
+        ## add anotations
+        robots_y_value = {}
+        n = len(csv_data.robot_id.unique()) - 1
+        for robot in csv_data.robot_id.unique():
+            robots_y_value[robot] = n
+            n -= 1
+
+        text_font = dict(size=12, color='black')
+        for index, data in csv_data.iterrows():
+            y = robots_y_value[data["robot_id"]]
+            fig['layout']['annotations'] += tuple(
+                    [dict(x=data["x_poses"], y=y, text=str(data["task_id"]), textangle=0, showarrow=False,
+                          font=text_font)])
+        fig['layout']['yaxis']['title'] = "ID/nazwa robotów"
+        py.offline.plot(fig, filename=self.file_path + 'behaviours_gant.html', auto_open=False)
+
+    def create_pois_gant(self):
+        csv_data = pd.read_csv(self.file_log_path + "behaviours.csv")
+        csv_data = csv_data.sort_values(by='robot_id')
+        colors = {'WAIT': 'rgb({},{},{})'.format(255, 0, 0),
+                  'DOCK': 'rgb({},{},{})'.format(0, 0, 255),
+                  'UNDOCK': 'rgb({},{},{})'.format(0, 0, 100),
+                  'BAT_EX': 'rgb({},{},{})'.format(235, 0, 0),
+                  'RETURN_GO_TO': 'rgb({},{},{})'.format(0, 255, 0)}
+        df = pd.DataFrame(csv_data)
+        filtered_data = df.query('beh_type != "GO_TO" | return_go_to')
+
+        x_poses = []
+        for index, data in filtered_data.iterrows():
+            x_pos = (data["end_time"] - data["start_time"]) / 2 + data["start_time"]
+            x_poses.append(self.today + datetime.timedelta(seconds=x_pos))
+        filtered_data["x_poses"] = x_poses
+
+        for poi in sorted(filtered_data.poi.unique()):
+            filtered_csv_data = filtered_data.loc[filtered_data["poi"] == poi]
+            plot_data = []
+            i = 0
+            for index, data in filtered_csv_data.iterrows():
+                beh_type = "RETURN_GO_TO" if "GO_TO" in data["beh_type"] else data["beh_type"]
+                start_time = self.today + datetime.timedelta(seconds=data["start_time"])
+                end_time = self.today + datetime.timedelta(seconds=data["end_time"])
+                plot_data.append(dict(Task=str(data["robot_id"]), Start=start_time, Finish=end_time,
+                                      Resource=beh_type))
+                i += 1
+            fig = ff.create_gantt(plot_data, index_col='Resource',
+                                  title='Zadania wykonywane dla POI {}'.format(poi), show_colorbar=True,
+                                  group_tasks=True, showgrid_x=True, showgrid_y=True, colors = colors)
+            ## add anotations
+            robots_y_value = {}
+            n = len(filtered_csv_data.robot_id.unique()) - 1
+            for robot in filtered_csv_data.robot_id.unique():
+                robots_y_value[robot] = n
+                n -= 1
+
+            text_font = dict(size=12, color='black')
+            for index, data in filtered_csv_data.iterrows():
+                y = robots_y_value[data["robot_id"]]
+                fig['layout']['annotations'] += tuple(
+                        [dict(x=data["x_poses"], y=y, text=str(data["task_id"]), textangle=0, showarrow=False,
+                              font=text_font)])
+            fig['layout']['yaxis']['title'] = "ID/nazwa robotów"
+            py.offline.plot(fig, filename=self.file_path + 'poi_{}_gant.html'.format(poi), auto_open=False)
+
+    def create_graph_edges_no_group(self):
+        csv_data = pd.read_csv(self.file_log_path + "graph_traffic.csv")
+        csv_data = csv_data.sort_values(by=['sim_time', 'start_node_id', 'end_node_id'])
+        df = pd.DataFrame(csv_data)
+        filtered_data = df.query('group_id == 0')
+        time_series = sorted(filtered_data.sim_time.unique())
+
+        plot_data = []
+        i = 0
+        for index, data in filtered_data.iterrows():
+            step_index = time_series.index(data['sim_time']) + 1
+            try:
+                step_time = time_series[step_index] - data['sim_time']
+            except IndexError:
+                step_time = TIME_STEP_SUPERVISOR_SIM
+
+            start_time = self.today + datetime.timedelta(seconds=data['sim_time'])
+            end_time = start_time + datetime.timedelta(seconds=float(step_time))
+            edge_name = str(data['start_node_id']) + ", " + str(data['end_node_id'])
+            plot_data.append(dict(Task=edge_name, Start=start_time, Finish=end_time, Resource=data["traffic"]))
+            i += 1
+        fig = ff.create_gantt(plot_data, index_col='Resource', title='Krawędzie grafu nienależące do grup',
+                              show_colorbar=True, group_tasks=True, showgrid_x=True, showgrid_y=True, colors = "Reds")
+
+        fig['layout']['yaxis']['title'] = "ID krawędzi"
+        py.offline.plot(fig, filename=self.file_path + 'graph_edges_no_group.html', auto_open=False)
+
+    def create_graph_edges_groups(self):
+        csv_data = pd.read_csv(self.file_log_path + "graph_traffic.csv")
+        csv_data = csv_data.sort_values(by=['sim_time', 'group_id', 'start_node_id', 'end_node_id'])
+        df = pd.DataFrame(csv_data)
+        filtered_data = df.query('group_id != 0')
+        time_series = sorted(filtered_data.sim_time.unique())
+
+        plot_data = []
+        i = 0
+        for index, data in filtered_data.iterrows():
+            step_index = time_series.index(data['sim_time']) + 1
+            try:
+                step_time = time_series[step_index] - data['sim_time']
+            except IndexError:
+                step_time = TIME_STEP_SUPERVISOR_SIM
+
+            start_time = self.today + datetime.timedelta(seconds=data['sim_time'])
+            end_time = start_time + datetime.timedelta(seconds=float(step_time))
+            edge_name = str(data["group_id"]) + " | " + str(data["start_node_id"]) + ", " + str(data["end_node_id"])
+            plot_data.append(dict(Task=edge_name, Start=start_time, Finish=end_time, Resource=data["traffic"]))
+            i += 1
+            start_time = end_time
+        fig = ff.create_gantt(plot_data, index_col='Resource', title='Krawędzie grafu należące do grup',
+                              show_colorbar=True, group_tasks=True, showgrid_x=True, showgrid_y=True, colors = "Reds")
+
+        fig['layout']['yaxis']['title'] = "ID krawędzi"
+        fig['layout']['height'] = 800
+        py.offline.plot(fig, filename=self.file_path + 'graph_edges_groups.html', auto_open=False)
+
+    def create_battery_lvl_plot(self):
+        csv_data = pd.read_csv(self.file_log_path + "batteries.csv")
+        csv_data = csv_data.sort_values(by='robot_id')
+
+        fig, ax = plt.subplots(figsize=(20, 20))
+        ax.set_title('Stan naladowania baterii w robotach')
+        ax.set_xlabel('czas [s]')
+        ax.set_ylabel('bateria [Ah]')
+
+        filtered_data = csv_data.loc[csv_data["robot_id"] == csv_data.robot_id.unique()[0]]
+        x = filtered_data.sim_time
+        ax.plot(x, filtered_data.warning_lvl, label="warning_lvl", color='orange')
+        ax.plot(x, filtered_data.critical_lvl, label="critical_lvl", color='red')
+
+        for robot_id in sorted(csv_data.robot_id.unique()):
+            filtered_data = csv_data.loc[csv_data["robot_id"] == robot_id]
+            x = filtered_data.sim_time
+            y = filtered_data.battery_lvl
+            ax.plot(x, y, label=str(robot_id))
+
+        ax.legend()
+        plt.savefig(self.file_path + "batteries.png")
+
+    def animate_graph(self, traffic_graph=True):
+        time_series = sorted(self.graph_data.sim_time.unique())
+        step = time_series[1] - time_series[0]
+
+        play = ipywidgets.Play(value=time_series[0], min=time_series[0], max=time_series[-1], step=step,
+                               description="Press play", disabled=False, interval=500)
+
+        self.time_slider.value = time_series[0]
+        self.time_slider.min = time_series[0]
+        self.time_slider.max = time_series[-1]
+        self.time_slider.step = step
+
+        ipywidgets.jslink((play, 'value'), (self.time_slider, 'value'))
+        timeline = ipywidgets.HBox([play, self.time_slider])
+        self.time_slider.observe(self._slider_callback, 'value')
+        if traffic_graph:
+            ipywidgets.interact(self._update_graph_traffic, button=self._update_button)
+        else:
+            ipywidgets.interact(self._update_graph_robots_count, button=self._update_button)
+        return timeline
+
+    def _update_graph_traffic(self, button):
+        plt.figure(figsize=(15, 15))
+
+        df = pd.DataFrame(self.graph_data)
+        filtered_data = df.query('sim_time == {}'.format(self.time_slider.value))
+        for index, row in filtered_data.iterrows():
+            self.graph.edges[row.start_node_id, row.end_node_id]["traffic"] = int(row["traffic"])
+            red = row["traffic"]/100
+            self.graph.edges[row.start_node_id, row.end_node_id]["color"] = matplotlib.colors.to_hex([red, 0, 0 ])
+
+        node_pos = nx.get_node_attributes(self.graph, "pos")
+        traffic = nx.get_edge_attributes(self.graph, "traffic")
+        node_col = [self.graph.nodes[i]["color"] for i in self.graph.nodes()]
+        edge_col = [self.graph.edges[i]["color"] for i in self.graph.edges()]
+
+        nx.draw_networkx(self.graph, node_pos, node_color=node_col, edge_color=edge_col, node_size=50, font_size=7,
+                         with_labels=True, font_color="w", width=1)
+        nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=traffic, font_size=10)
+
+    def _update_graph_robots_count(self, button):
+        plt.figure(figsize=(15, 15))
+
+        df = pd.DataFrame(self.graph_data)
+        filtered_data = df.query('sim_time == {}'.format(self.time_slider.value))
+        for index, row in filtered_data.iterrows():
+            self.graph.edges[row.start_node_id, row.end_node_id]["maxRobots"] = row["n_robots"]
+
+        node_pos = nx.get_node_attributes(self.graph, "pos")
+        max_robots = nx.get_edge_attributes(self.graph, "maxRobots")
+        node_col = [self.graph.nodes[i]["color"] for i in self.graph.nodes()]
+
+        nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=50, font_size=7,
+                         with_labels=True, font_color="w", width=1)
+        nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=max_robots, font_size=10)
+
+    def _slider_callback(self, widget):
+        self._update_button.value = not self._update_button.value

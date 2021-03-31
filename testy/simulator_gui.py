@@ -1023,3 +1023,12 @@ class TestGuiPanel:
         with open(file_path, 'w') as f:
             json.dump(data, f)
 
+    def export_log_config(self, file_path):
+        data = {}
+        data["robots"] = self.robots_creator.export_robots_config()
+        data["tasks_pattern"] = self.task_pattern_creator.export_tasks_pattern_config()
+        data["tasks"] = self.task_panel.export_tasks_config()
+        update_info("Zapisano konfiguracje: " + self.config_file_name_widget.value)
+        with open(file_path +"config_sim_tasks_robots.json", 'w') as f:
+            json.dump(data, f)
+
