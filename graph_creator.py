@@ -1451,6 +1451,17 @@ class SupervisorGraphCreator(DataValidator):
 
         return robot_pose
 
+    def is_return_edge(self, edge):
+        """
+        Sprawdza czy podana krawedz grafu jest krawedzia powrotna.
+        Parameters:
+            edge ((string,string)): krawedz
+        Returns:
+            (bool): informacja czy podana krawedz pozwala na bezposredni powrot do tego samego POI
+        """
+        data = self.graph.edges[edge]
+        return data["edgeGroupId"] != 0 and data["behaviour"] == Behaviour.TYPES["goto"] and data["weight"] == 0
+
     def print_graph(self, plot_size=(45, 45)):
         """
         Wyswietla utworzony graf.
@@ -1474,7 +1485,7 @@ class SupervisorGraphCreator(DataValidator):
         # nx.draw_networkx_edge_labels(self.graph, node_pos,
         #                              edge_labels=max_robots, font_size=30)
 
-        nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=200, font_size=10,
+        nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=2000, font_size=30,
                                           with_labels=True, font_color="w", width=4)
         nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=max_robots, font_size=10)
 
