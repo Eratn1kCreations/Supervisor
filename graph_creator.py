@@ -667,7 +667,7 @@ class SupervisorGraphCreator(DataValidator):
         if OFFLINE_TEST:
             self.add_nodes_position_test_offline()
         else:
-             self.add_nodes_position()
+            self.add_nodes_position()
         self.connect_poi_to_waiting_node()
         self.set_default_time_weight()
         self.set_max_robots()
@@ -747,9 +747,14 @@ class SupervisorGraphCreator(DataValidator):
             self.edge_id = self.edge_id + 1
             self.graph.add_node(self.graph_node_id, nodeType=new_node_type["wait"], sourceNode=node_id,
                                 color=node_color["wait"], poiId=dock_node[1]["poiId"])
+
+            behaviour = Behaviour.TYPES["wait"]
+            if self.source_nodes[node_id]["type"] == base_node_type["charger"]:
+                behaviour = Behaviour.TYPES["bat_ex"]
             self.graph.add_edge(self.graph_node_id, self.graph_node_id + 1, id=self.edge_id, weight=0,
-                                behaviour=Behaviour.TYPES["wait"], robots=[],
+                                behaviour=behaviour, robots=[],
                                 edgeGroupId=self.group_id_switcher[node_id], sourceNodes=[node_id], sourceEdges=[0])
+
             self.graph_node_id = self.graph_node_id + 1
             self.edge_id = self.edge_id + 1
             self.graph.add_node(self.graph_node_id, nodeType=new_node_type["undock"], sourceNode=node_id,
