@@ -615,6 +615,7 @@ class SupervisorGraphCreator(DataValidator):
                                    nalezaca do POI
                 "corridor" (list): lista kolejnych wspolrzednych (x,y) (float,float), korytarza dla krawedzi grafu
                                    rozszerzonego, dotyczy krawedzi z zachowaniem GOTO
+                "path" (list((float,float)): sciezka z kolejnymi wspolrzednymi (x,y) w korytarzu
             Atrybuty wezlow:
                 "nodeType" (new_node_type["..."]): typ wezla
                 "sourceNode" (string): id wezla zrodlowego
@@ -1354,6 +1355,8 @@ class SupervisorGraphCreator(DataValidator):
         """
         for edge in self.graph.edges(data=True):
             if edge[2]["behaviour"] == Behaviour.TYPES["goto"]:
+                path = self.get_corridor_path([edge[0], edge[1]])
+                self.graph.edges[edge[0], edge[1]]["path"] = path[1:-1]
                 self.graph.edges[edge[0], edge[1]]["corridor"] = self.get_corridor_coordinates([edge[0], edge[1]])
 
     def print_corridor(self, edge):
