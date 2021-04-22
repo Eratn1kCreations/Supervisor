@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
-import copy
-from dispatcher import Robot, Task, Battery
+from dispatcher import Robot, Task
 import battery_swap_manager as swap
 import graph_creator as gc
 from datetime import datetime, timedelta
@@ -21,6 +20,7 @@ pois_raw = [
 ]
 
 
+@pytest.mark.swap_manager
 def test_init():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -38,6 +38,8 @@ def test_init():
         for task in manager.swap_plan[i]["tasks"]:
             assert type(task) == Task
 
+
+@pytest.mark.swap_manager
 def test_task_id_name():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -51,6 +53,8 @@ def test_task_id_name():
         for task in manager.swap_plan[i]["tasks"]:
             assert "swap" in task.id
 
+
+@pytest.mark.swap_manager
 def test_swap_stations_1():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -68,6 +72,8 @@ def test_swap_stations_1():
         for task in robot_plan["tasks"]:
             assert task.behaviours[0].get_poi() in swap_stations
 
+
+@pytest.mark.swap_manager
 def test_swap_stations_multiple():
     pois_raw = [
         {"id": "1", "pose": None, "type": gc.base_node_type["queue"]},
@@ -102,6 +108,8 @@ def test_swap_stations_multiple():
         for task in robot_plan["tasks"]:
             assert task.behaviours[0].get_poi() in swap_stations
 
+
+@pytest.mark.swap_manager
 def test_get_new_swap_tasks():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -141,6 +149,8 @@ def test_get_new_swap_tasks():
                 break
         assert is_task_exist
 
+
+@pytest.mark.swap_manager
 def test_get_tasks_to_update():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -184,6 +194,8 @@ def test_get_tasks_to_update():
                 break
         assert is_task_exist
 
+
+@pytest.mark.swap_manager
 def test_started_swap_task():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -208,6 +220,8 @@ def test_started_swap_task():
         else:
             assert False
 
+
+@pytest.mark.swap_manager
 def test_finished_swap_task():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -232,6 +246,8 @@ def test_finished_swap_task():
         elif i in robot_id_swap_tasks_to_remove:
             assert False
 
+
+@pytest.mark.swap_manager
 def test_check_if_replan_required_false():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -244,6 +260,8 @@ def test_check_if_replan_required_false():
     manager = swap.BatterySwapManager(robots, pois_raw)
     assert not manager._is_replan_required(robots)
 
+
+@pytest.mark.swap_manager
 def test_check_if_replan_required_false_close_to_replan():
     # zadanie wymiany na granicy progu replanowania, ktory nie zostal jeszcze przekroczony
     robots_raw = [
@@ -259,10 +277,13 @@ def test_check_if_replan_required_false_close_to_replan():
 
     time_to_warn = robots["3"].battery.get_time_to_warn_allert()
     extend_time = time_to_warn + swap.SWAP_TIME_BEFORE_ALERT + swap.SWAP_TIME + (0.95*swap.REPLAN_THRESHOLD)
-    manager.swap_plan["3"]["tasks"][0].start_time = (datetime.now() + timedelta(minutes=extend_time)).strftime("%Y-%m-%d %H:%M:%S")
+    manager.swap_plan["3"]["tasks"][0].start_time = (datetime.now() + timedelta(minutes=extend_time)).\
+        strftime("%Y-%m-%d %H:%M:%S")
 
     assert not manager._is_replan_required(robots)
 
+
+@pytest.mark.swap_manager
 def test_check_if_replan_required_true_mising_robot_id():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -274,9 +295,12 @@ def test_check_if_replan_required_true_mising_robot_id():
     robots = {data["id"]: Robot(data) for data in robots_raw}
     manager = swap.BatterySwapManager(robots, pois_raw)
 
-    robots["7"] = Robot({"id": "7", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"})
+    robots["7"] = Robot({"id": "7", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0,
+                         "poiId": "1"})
     assert manager._is_replan_required(robots)
 
+
+@pytest.mark.swap_manager
 def test_check_if_replan_required_true_empty_swap_tasks():
     robots_raw = [
         {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -290,6 +314,8 @@ def test_check_if_replan_required_true_empty_swap_tasks():
     manager.set_done_task_status("3")
     assert manager._is_replan_required(robots)
 
+
+@pytest.mark.swap_manager
 def test_check_if_replan_required_true_low_battery():
     # zadanie wymiany na granicy progu replanowania, ktory nie zostal jeszcze przekroczony
     robots_raw = [
@@ -305,10 +331,13 @@ def test_check_if_replan_required_true_low_battery():
 
     time_to_warn = robots["3"].battery.get_time_to_warn_allert()
     extend_time = time_to_warn + swap.SWAP_TIME_BEFORE_ALERT + swap.SWAP_TIME + (1.2*swap.REPLAN_THRESHOLD)
-    manager.swap_plan["3"]["tasks"][0].start_time = (datetime.now() + timedelta(minutes=extend_time)).strftime("%Y-%m-%d %H:%M:%S")
+    manager.swap_plan["3"]["tasks"][0].start_time = (datetime.now() + timedelta(minutes=extend_time)).\
+        strftime("%Y-%m-%d %H:%M:%S")
 
     assert manager._is_replan_required(robots)
 
+
+@pytest.mark.swap_manager
 def test_create_new_plan_delete_robots():
     # zadanie wymiany na granicy progu replanowania, ktory nie zostal jeszcze przekroczony
     robots_raw1 = [
@@ -336,6 +365,8 @@ def test_create_new_plan_delete_robots():
     print(type(robots2))
     assert not manager._is_replan_required(robots2)
 
+
+@pytest.mark.swap_manager
 def test_create_new_plan_add_plan_missing_robots():
     # zadanie wymiany na granicy progu replanowania, ktory nie zostal jeszcze przekroczony
     robots_raw1 = [
@@ -359,7 +390,7 @@ def test_create_new_plan_add_plan_missing_robots():
     ]
     robots2 = {data["id"]: Robot(data) for data in robots_raw2}
     manager.get_new_swap_tasks()
-    assert not manager.new_task # po pobraniu zadan flaga nie jest ustawiona
+    assert not manager.new_task  # po pobraniu zadan flaga nie jest ustawiona
     manager._create_new_plan(robots2)
 
     assert len(manager.swap_plan) == len(robots2)
@@ -371,6 +402,8 @@ def test_create_new_plan_add_plan_missing_robots():
     assert manager.new_task
     assert not manager.updated_task
 
+
+@pytest.mark.swap_manager
 def test_create_new_plan_add_plan_missing_tasks():
     # zadanie wymiany na granicy progu replanowania, ktory nie zostal jeszcze przekroczony
     robots_raw = [
@@ -383,7 +416,7 @@ def test_create_new_plan_add_plan_missing_tasks():
     robots = {data["id"]: Robot(data) for data in robots_raw}
     manager = swap.BatterySwapManager(robots, pois_raw)
     manager.get_new_swap_tasks()
-    assert not manager.new_task # po pobraniu zadan flaga nie jest ustawiona
+    assert not manager.new_task  # po pobraniu zadan flaga nie jest ustawiona
 
     manager.set_done_task_status("1")
     manager.set_done_task_status("3")
@@ -396,6 +429,8 @@ def test_create_new_plan_add_plan_missing_tasks():
 
     assert not manager._is_replan_required(robots)
 
+
+@pytest.mark.swap_manager
 def test_create_new_plan_update_swap_time():
     # zadanie wymiany na granicy progu replanowania, ktory nie zostal jeszcze przekroczony
     robots_raw = [
@@ -413,7 +448,8 @@ def test_create_new_plan_update_swap_time():
 
     time_to_warn = robots["3"].battery.get_time_to_warn_allert()
     extend_time = time_to_warn + swap.SWAP_TIME_BEFORE_ALERT + swap.SWAP_TIME + (1.2*swap.REPLAN_THRESHOLD)
-    manager.swap_plan["3"]["tasks"][0].start_time = (datetime.now() + timedelta(minutes=extend_time)).strftime("%Y-%m-%d %H:%M:%S")
+    manager.swap_plan["3"]["tasks"][0].start_time = (datetime.now() + timedelta(minutes=extend_time)).\
+        strftime("%Y-%m-%d %H:%M:%S")
 
     assert manager._is_replan_required(robots)
     assert manager._is_robot_update_required(robots["3"])
