@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 import pytest
 import random
-import graph_creator as gc
 import dispatcher as disp
+
 
 # Niektore testy odnosza sie do walidacji danych dla klasy Task, Robot. Moga nie przejsc, gdy integracja z supervisorem
 # i reszta systemu byla sprawdzana bez tej funkcjonalnosci
 # ------------------------------ Behaviour input data ------------------------------ #
 @pytest.mark.behaviour_data
 def test_does_not_raise_on_valid_input():
-    raised = False
     param_name = disp.Behaviour.PARAM
     behaviour_goto = {param_name["ID"]: "fa33n52",
                       param_name["BEH_PARAM"]: {param_name["TYPE"]: disp.Behaviour.TYPES["goto"],
@@ -395,6 +394,7 @@ def test_throws_input_data_exception_raise_on_valid_input():
     assert not raised
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_input_data_type_list():
     task_data = []
@@ -406,6 +406,7 @@ def test_throws_input_data_exception_input_data_type_list():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_input_data_type_none():
     task_data = None
@@ -417,6 +418,7 @@ def test_throws_input_data_exception_input_data_type_none():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_input_data_string():
     task_data = "teaffeafwae"
@@ -428,6 +430,7 @@ def test_throws_input_data_exception_input_data_string():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_missing_task_id():
     task_data = {"idf": "1",
@@ -468,6 +471,7 @@ def test_throws_input_data_exception_missing_task_id():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_task_id_type_int():
     task_data = {"id": 1,
@@ -492,6 +496,7 @@ def test_throws_input_data_exception_wrong_task_id_type_int():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_task_id_type_none():
     task_data = {"id": None,
@@ -516,6 +521,7 @@ def test_throws_input_data_exception_wrong_task_id_type_none():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_task_id_type_dict():
     task_data = {"id": {},
@@ -540,6 +546,7 @@ def test_throws_input_data_exception_wrong_task_id_type_dict():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_task_id_type_list():
     task_data = {"id": [],
@@ -564,6 +571,7 @@ def test_throws_input_data_exception_wrong_task_id_type_list():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_missing_robot_id_in_assigned_task():
     task_data = {"id": "1",
@@ -606,6 +614,7 @@ def test_throws_input_data_exception_missing_robot_id_in_assigned_task():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_type_robot_id_int():
     task_data = {"id": "1",
@@ -632,6 +641,7 @@ def test_throws_input_data_exception_wrong_type_robot_id_int():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_type_robot_id_list():
     task_data = {"id": "1",
@@ -658,6 +668,7 @@ def test_throws_input_data_exception_wrong_type_robot_id_list():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_value_robot_id():
     task_data = {"id": "1",
@@ -723,6 +734,7 @@ def test_no_throws_input_data_exception_value_robot_id():
         assert True
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_missing_start_time():
     task_data = {"id": "1",
@@ -745,6 +757,7 @@ def test_throws_input_data_exception_missing_start_time():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_type_start_time_list():
     task_data = {"id": "1",
@@ -770,6 +783,7 @@ def test_throws_input_data_exception_wrong_type_start_time_list():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_type_start_time_int():
     task_data = {"id": "1",
@@ -795,6 +809,7 @@ def test_throws_input_data_exception_wrong_type_start_time_int():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_format_start_time():
     task_data = {"id": "1",
@@ -907,6 +922,7 @@ def test_throws_input_data_exception_wrong_format_start_time():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_missing_current_behaviour_index():
     task_data = {"id": "1",
@@ -929,6 +945,7 @@ def test_throws_input_data_exception_missing_current_behaviour_index():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_current_behaviour_index_type_float():
     task_data = {"id": "1",
@@ -954,6 +971,7 @@ def test_throws_input_data_exception_wrong_current_behaviour_index_type_float():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_current_behaviour_index_type_string():
     task_data = {"id": "1",
@@ -979,6 +997,7 @@ def test_throws_input_data_exception_wrong_current_behaviour_index_type_string()
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_current_behaviour_index_type_none():
     task_data = {"id": "1",
@@ -1004,6 +1023,7 @@ def test_throws_input_data_exception_wrong_current_behaviour_index_type_none():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_current_behaviour_index_range():
     task_data = {"id": "1",
@@ -1053,6 +1073,7 @@ def test_throws_input_data_exception_wrong_current_behaviour_index_range():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_missing_status():
     task_data = {"id": "1",
@@ -1075,6 +1096,7 @@ def test_throws_input_data_exception_missing_status():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_status_type_int():
     task_data = {"id": "1",
@@ -1100,6 +1122,7 @@ def test_throws_input_data_exception_wrong_status_type_int():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_status_type_list():
     task_data = {"id": "1",
@@ -1125,6 +1148,7 @@ def test_throws_input_data_exception_wrong_status_type_list():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_status_type_dict():
     task_data = {"id": "1",
@@ -1150,6 +1174,7 @@ def test_throws_input_data_exception_wrong_status_type_dict():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_status_value():
     task_data = {"id": "1",
@@ -1176,6 +1201,7 @@ def test_throws_input_data_exception_wrong_status_value():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_missing_weight():
     task_data = {"id": "1",
@@ -1198,6 +1224,7 @@ def test_throws_input_data_exception_missing_weight():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_weight_type_string():
     task_data = {"id": "1",
@@ -1222,6 +1249,7 @@ def test_throws_input_data_exception_wrong_weight_type_string():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_weight_type_list():
     task_data = {"id": "1",
@@ -1246,6 +1274,7 @@ def test_throws_input_data_exception_wrong_weight_type_list():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_weight_type_dict():
     # nieprawidlowy format danych
@@ -1272,6 +1301,7 @@ def test_throws_input_data_exception_wrong_weight_type_dict():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_missing_behaviours():
     task_data = {"id": "1",
@@ -1290,6 +1320,7 @@ def test_throws_input_data_exception_missing_behaviours():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_behaviour_type_int():
     task_data = {"id": "1",
@@ -1311,6 +1342,7 @@ def test_throws_input_data_exception_wrong_behaviour_type_int():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.task_data
 def test_throws_input_data_exception_wrong_behaviour_type_string():
     task_data = {"id": "1",
@@ -2846,6 +2878,7 @@ def test_task_manager_get_free_tasks():
 
 
 # ------------------------------ Robot input data ------------------------------ #
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_data_type():
     robot = "nazwa"
@@ -2873,6 +2906,7 @@ def test_robot_validate_input_throws_exceptions_wrong_data_type():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_id_param():
     robot = {"edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0}
@@ -2884,6 +2918,7 @@ def test_robot_validate_input_throws_exceptions_missing_id_param():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_edge_param():
     robot = {"id": "4", "planningOn": True, "isFree": True, "timeRemaining": 0}
@@ -2895,6 +2930,7 @@ def test_robot_validate_input_throws_exceptions_missing_edge_param():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_planning_on_param():
     robot = {"id": "4", "edge": ("1", "2"), "isFree": True, "timeRemaining": 0}
@@ -2906,6 +2942,7 @@ def test_robot_validate_input_throws_exceptions_missing_planning_on_param():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_is_free_param():
     robot = {"id": "4", "edge": ("1", "2"), "planningOn": True, "timeRemaining": 0}
@@ -2917,6 +2954,7 @@ def test_robot_validate_input_throws_exceptions_missing_is_free_param():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_time_remaining_param():
     robot = {"id": "4", "edge": ("1", "2"), "planningOn": True, "isFree": True}
@@ -2928,6 +2966,7 @@ def test_robot_validate_input_throws_exceptions_missing_time_remaining_param():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_id_type():
     robot = {"id": 6, "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0}
@@ -2951,6 +2990,7 @@ def test_robot_validate_input_throws_exceptions_wrong_id_type():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_edge_type():
     robot = {"id": "6", "edge": "1", "planningOn": True, "isFree": True, "timeRemaining": 0}
@@ -2974,6 +3014,7 @@ def test_robot_validate_input_throws_exceptions_wrong_edge_type():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_planning_on_type():
     robot = {"id": "6", "edge": ("1", "2"), "planningOn": 6, "isFree": True, "timeRemaining": 0}
@@ -2997,6 +3038,7 @@ def test_robot_validate_input_throws_exceptions_wrong_planning_on_type():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_is_free_type():
     robot = {"id": "6", "edge": ("1", "2"), "planningOn": True, "isFree": "True", "timeRemaining": 0}
@@ -3020,6 +3062,7 @@ def test_robot_validate_input_throws_exceptions_wrong_is_free_type():
         assert False
 
 
+@pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_time_remaining_type():
     robot = {"id": "6", "edge": ("1", "4"), "planningOn": True, "isFree": True, "timeRemaining": "0"}
@@ -3128,12 +3171,12 @@ def test_plan_manager_set_robots_only_planning_on():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    assert len(planManager.robots) == 3  # w trybie planowania tylko 3
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    assert len(plan_manager.robots) == 3  # w trybie planowania tylko 3
 
     robots = []
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    assert len(planManager.robots) == 0  # w trybie planowania tylko 0
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    assert len(plan_manager.robots) == 0  # w trybie planowania tylko 0
 
 
 @pytest.mark.robots_plan_manager
@@ -3157,8 +3200,8 @@ def test_plan_manager_get_robot_by_id():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    assert planManager.get_robot_by_id("3").get_info() == disp.Robot(robots_raw[2]).get_info()
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    assert plan_manager.get_robot_by_id("3").get_info() == disp.Robot(robots_raw[2]).get_info()
 
 
 @pytest.mark.robots_plan_manager
@@ -3175,8 +3218,8 @@ def test_plan_manager_get_robot_by_id_robot_no_exist():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    assert planManager.get_robot_by_id("7") is None
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    assert plan_manager.get_robot_by_id("7") is None
 
 
 @pytest.mark.robots_plan_manager
@@ -3204,11 +3247,11 @@ def test_plan_manager_set_tasks_ok_data():
         "2": (89, 90),
         "3": (20, 30)
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task("2", disp.Task(task))
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task("2", disp.Task(task))
     valid_task = disp.Task(task)
     valid_task.robot_id = "2"
-    assert valid_task.get_info() == planManager.get_robot_by_id("2").task.get_info()
+    assert valid_task.get_info() == plan_manager.get_robot_by_id("2").task.get_info()
 
 
 @pytest.mark.robots_plan_manager
@@ -3237,11 +3280,11 @@ def test_plan_manager_set_tasks_ok_data():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task("2", disp.Task(task))
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task("2", disp.Task(task))
     valid_task = disp.Task(task)
     valid_task.robot_id = "2"
-    assert valid_task.get_info() == planManager.get_robot_by_id("2").task.get_info()
+    assert valid_task.get_info() == plan_manager.get_robot_by_id("2").task.get_info()
 
 
 @pytest.mark.robots_plan_manager
@@ -3270,11 +3313,11 @@ def test_plan_manager_set_tasks_throws_error_when_dispatcher_assigned_tasks_set_
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     task = disp.Task(task_data)
     robot_id = "2"
     try:
-        planManager.set_task(robot_id, disp.Task(task_data))
+        plan_manager.set_task(robot_id, disp.Task(task_data))
     except disp.TaskManagerError as error:
         assert "Task is assigned to different robot. Task {} required robot with " \
                "id {} but {} was given.".format(task.id, task.robot_id, robot_id) == str(error)
@@ -3309,10 +3352,10 @@ def test_plan_manager_set_tasks_set_root_id_in_task():
         "3": ("20", "30")
     }
     robot_id = "2"
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task(robot_id, disp.Task(task))
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task(robot_id, disp.Task(task))
 
-    assert planManager.get_robot_by_id(robot_id).task.robot_id == robot_id
+    assert plan_manager.get_robot_by_id(robot_id).task.robot_id == robot_id
 
 
 @pytest.mark.robots_plan_manager
@@ -3342,9 +3385,9 @@ def test_plan_manager_set_tasks_invalid_robot_id():
         "3": ("20", "30")
     }
     robot_id = "7"
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     try:
-        planManager.set_task(robot_id, disp.Task(task))
+        plan_manager.set_task(robot_id, disp.Task(task))
     except disp.TaskManagerError as error:
         assert "Robot on id '{}' doesn't exist".format(robot_id) == str(error)
     else:
@@ -3365,10 +3408,9 @@ def test_plan_manager_check_if_robot_exist():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    assert planManager.check_if_robot_id_exist("1")
-    assert not planManager.check_if_robot_id_exist("7")
-    assert not planManager.check_if_robot_id_exist(None)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    assert plan_manager.check_if_robot_id_exist("1")
+    assert not plan_manager.check_if_robot_id_exist("7")
 
 
 @pytest.mark.robots_plan_manager
@@ -3398,11 +3440,11 @@ def test_plan_manager_set_next_edge():
         "3": ("20", "30")
     }
     robot_id = "2"
-    set_edge = (3, 4)
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task(robot_id, disp.Task(task))
-    planManager.set_next_edge(robot_id, set_edge)
-    assert planManager.get_robot_by_id(robot_id).next_task_edge == set_edge
+    set_edge = ("3", "4")
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task(robot_id, disp.Task(task))
+    plan_manager.set_next_edge(robot_id, set_edge)
+    assert plan_manager.get_robot_by_id(robot_id).next_task_edge == set_edge
 
 
 @pytest.mark.robots_plan_manager
@@ -3433,10 +3475,10 @@ def test_plan_manager_set_next_edge_invalid_robot_id():
     }
     robot_id = "2"
     set_edge = ("3", "4")
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task(robot_id, disp.Task(task))
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task(robot_id, disp.Task(task))
     try:
-        planManager.set_next_edge("7", set_edge)
+        plan_manager.set_next_edge("7", set_edge)
     except disp.TaskManagerError as error:
         assert "Robot on id '{}' doesn't exist".format("7") == str(error)
     else:
@@ -3459,9 +3501,9 @@ def test_plan_manager_set_next_edge_throws_except_when_robot_get_next_edge_but_d
     }
     robot_id = "2"
     set_edge = ("3", "4")
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     try:
-        planManager.set_next_edge(robot_id, set_edge)
+        plan_manager.set_next_edge(robot_id, set_edge)
     except disp.TaskManagerError as error:
         assert "Can not assign next edge when robot {} doesn't have task.".format(robot_id) == str(error)
     else:
@@ -3496,11 +3538,11 @@ def test_plan_manager_set_end_beh_edge():
     }
     robot_id = "2"
     set_edge = ("3", "4")
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task(robot_id, disp.Task(task))
-    planManager.set_next_edge(robot_id, set_edge)
-    planManager.set_end_beh_edge(robot_id, True)
-    assert planManager.get_robot_by_id(robot_id).end_beh_edge
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task(robot_id, disp.Task(task))
+    plan_manager.set_next_edge(robot_id, set_edge)
+    plan_manager.set_end_beh_edge(robot_id, True)
+    assert plan_manager.get_robot_by_id(robot_id).end_beh_edge
 
 
 @pytest.mark.robots_plan_manager
@@ -3531,10 +3573,10 @@ def test_plan_manager_set_end_beh_edge_invalid_robot_id():
     }
     robot_id = "2"
     set_end_beh_edge = False
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task(robot_id, disp.Task(task))
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task(robot_id, disp.Task(task))
     try:
-        planManager.set_end_beh_edge("7", set_end_beh_edge)
+        plan_manager.set_end_beh_edge("7", set_end_beh_edge)
     except disp.TaskManagerError as error:
         assert "Robot on id '{}' doesn't exist".format("7") == str(error)
     else:
@@ -3556,10 +3598,9 @@ def test_plan_manager_set_end_beh_edge_throws_except_when_robot_get_next_edge_bu
         "3": ("20", "30")
     }
     robot_id = "2"
-    set_end_beh_edge = ("3", "4")
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     try:
-        planManager.set_end_beh_edge(robot_id, set_end_beh_edge)
+        plan_manager.set_end_beh_edge(robot_id, True)
     except disp.TaskManagerError as error:
         assert "Can not set end behaviour edge when robot {} doesn't have task.".format(robot_id) == str(error)
     else:
@@ -3593,11 +3634,10 @@ def test_plan_manager_set_end_beh_edge_throws_except_when_robot_get_next_edge_bu
         "3": ("20", "30")
     }
     robot_id = "2"
-    set_end_beh_edge = ("3", "4")
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task(robot_id, disp.Task(task))
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task(robot_id, disp.Task(task))
     try:
-        planManager.set_end_beh_edge(robot_id, set_end_beh_edge)
+        plan_manager.set_end_beh_edge(robot_id, True)
     except disp.TaskManagerError as error:
         assert "Can not set end behaviour edge when robot {} doesn't have next_task_edge." \
                "".format(robot_id) == str(error)
@@ -3621,8 +3661,8 @@ def test_plan_manager_get_free_robots():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    free_robots = planManager.get_free_robots()
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    free_robots = plan_manager.get_free_robots()
     assert len(free_robots) == 3
     for robot in free_robots:
         assert robot.id in free_input_robots
@@ -3641,8 +3681,8 @@ def test_plan_manager_get_free_robots():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    free_robots = planManager.get_free_robots()
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    free_robots = plan_manager.get_free_robots()
     assert len(free_robots) == 4
     for robot in free_robots:
         assert robot.id in free_input_robots
@@ -3685,10 +3725,10 @@ def test_plan_manager_get_free_robots():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task("4", task1)
-    planManager.set_task("2", task2)
-    free_robots = planManager.get_free_robots()
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task("4", task1)
+    plan_manager.set_task("2", task2)
+    free_robots = plan_manager.get_free_robots()
     assert len(free_robots) == 2
     for robot in free_robots:
         assert robot.id in free_input_robots
@@ -3733,10 +3773,10 @@ def test_plan_manager_get_busy_robots():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
-    planManager.set_task("4", task1)
-    planManager.set_task("2", task2)
-    for robot in planManager.get_busy_robots():
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager.set_task("4", task1)
+    plan_manager.set_task("2", task2)
+    for robot in plan_manager.get_busy_robots():
         assert robot.id in busy_robots
 
 
@@ -3763,10 +3803,10 @@ def test_plan_manager_get_robots_id_on_given_edges():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     given_edges = [("8", "9"), ("3", "4"), ("33", "34")]
     robots_id = [robot["id"] for robot in robots_raw if robot["edge"] in given_edges]
-    given_robots = planManager.get_robots_id_on_given_edges(given_edges)
+    given_robots = plan_manager.get_robots_id_on_given_edges(given_edges)
     assert len(robots_id) == len(given_robots)
     for robot in given_robots:
         assert robot in robots_id
@@ -3816,14 +3856,14 @@ def test_plan_manager_get_robots_id_on_future_edges():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     for i, robot in enumerate(robots_raw):
-        planManager.set_task(robot["id"], tasks[i])
-        planManager.set_next_edge(robot["id"], next_edges[i])
+        plan_manager.set_task(robot["id"], tasks[i])
+        plan_manager.set_next_edge(robot["id"], next_edges[i])
     given_edges = [("3", "4"), ("33", "34")]
 
-    robots_id = [robot.id for robot in planManager.robots.values() if robot.next_task_edge in given_edges]
-    given_robots = planManager.get_robots_id_on_future_edges(given_edges)
+    robots_id = [robot.id for robot in plan_manager.robots.values() if robot.next_task_edge in given_edges]
+    given_robots = plan_manager.get_robots_id_on_future_edges(given_edges)
     assert len(robots_id) == len(given_robots)
     for robot in given_robots:
         assert robot in robots_id
@@ -3871,15 +3911,15 @@ def test_plan_manager_get_current_robots_goals():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     for i, robot in enumerate(robots_raw):
-        planManager.set_task(robot["id"], tasks[i])
+        plan_manager.set_task(robot["id"], tasks[i])
 
     expected_result = {}
     for i in range(len(robots_raw)):
         expected_result[robots_raw[i]["id"]] = pois_id[i]
 
-    assert expected_result == planManager.get_current_robots_goals()
+    assert expected_result == plan_manager.get_current_robots_goals()
 
     # Niektore roboty nie maja zadan
     robots_raw = [
@@ -3907,7 +3947,7 @@ def test_plan_manager_get_current_robots_goals():
         "2": ("89", "90"),
         "3": ("20", "30")
     }
-    planManager = disp.RobotsPlanManager(robots, base_poi_edges)
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     for i in range(len(robots_raw)):
         poi_id = pois_id[i]
         if poi_id is not None:
@@ -3923,11 +3963,11 @@ def test_plan_manager_get_current_robots_goals():
                               "start_time": "2018-06-29 07:15:27",
                               "weight": 5,
                               "priority": 5})
-            planManager.set_task(robots_raw[i]["id"], task)
+            plan_manager.set_task(robots_raw[i]["id"], task)
 
     expected_result = {}
     for i in range(len(robots_raw)):
         if pois_id[i] is not None:
             expected_result[robots_raw[i]["id"]] = pois_id[i]
 
-    assert expected_result == planManager.get_current_robots_goals()
+    assert expected_result == plan_manager.get_current_robots_goals()
