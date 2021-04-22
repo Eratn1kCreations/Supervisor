@@ -477,7 +477,7 @@ class Battery:
                "stand_usage={stand_use:.2f}  " \
                "remaining_working_time={rem_time:.2f}".format(max_capacity = self.max_capacity,
                                                               capacity = self.capacity,
-                                                              warning_lvl = self.get_warring_capacity(),
+                                                              warning_lvl = self.get_warning_capacity(),
                                                               critical_lvl=self.get_critical_capacity(),
                                                               drive_use = self.drive_usage,
                                                               stand_use = self.stand_usage,
@@ -1524,8 +1524,7 @@ class Dispatcher:
                         if robot.edge is not None:
                             poi = self.planning_graph.get_poi(robot.edge)
                         elif robot.edge is None and robot.poi_id is not None:
-                            poi = poi_id
-
+                            poi = robot.poi_id
                         if goal_id == poi:
                             self.robots_plan.set_task(robot_id, task)
                             self.set_task_edge(robot_id)
@@ -1561,7 +1560,6 @@ class Dispatcher:
             end_node = self.get_undone_behaviour_node(robot.task)
             path_nodes = self.planning_graph.get_path(start_node, end_node)
             next_edge = (path_nodes[0], path_nodes[1]) if len(path_nodes) >= 2 else robot.edge
-
             next_group_id = self.planning_graph.get_group_id(next_edge)
 
             base_poi_edges = self.planning_graph.get_base_pois_edges()
