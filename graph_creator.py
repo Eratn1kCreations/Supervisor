@@ -4,8 +4,7 @@ import numpy as np
 import copy
 import itertools
 import math
-import matplotlib.pyplot as plt  # do wizualizaccji i rysowania grafu
-import json
+import matplotlib.pyplot as plt  # do wizualizacji i rysowania grafu
 from shapely.geometry import LineString
 from shapely.ops import unary_union
 from dispatcher import *
@@ -23,9 +22,10 @@ WAIT_WEIGHT = 10
 OFFLINE_TEST = False
 
 way_type = {
-    "twoWay": 1,
-    "narrowTwoWay": 2,
-    "oneWay": 3
+    "oneWay": 1,
+    "twoWay": 2,
+    "narrowTwoWay": 3,
+
 }
 base_node_section_type = {
     "dockWaitUndock": 1,  # rozbicie na dock, wait, undock, end
@@ -43,7 +43,7 @@ base_node_type = {
     "load-unload": {"id": 4, "nodeSection": base_node_section_type["waitPOI"]},  # loading-unloading
     "load-dock": {"id": 5, "nodeSection": base_node_section_type["dockWaitUndock"]},  # loading-docking
     "unload-dock": {"id": 6, "nodeSection": base_node_section_type["dockWaitUndock"]},  # unloading-docking
-    "load-unload-dock": {"id": 7, "nodeSection": base_node_section_type["dockWaitUndock"]}, # loading-unloading-docking
+    "load-unload-dock": {"id": 7, "nodeSection": base_node_section_type["dockWaitUndock"]},  # loading-unloading-docking
     "waiting": {"id": 8, "nodeSection": base_node_section_type["noChanges"]},  # waiting
     "departure": {"id": 9, "nodeSection": base_node_section_type["noChanges"]},  # departue
     "waiting-departure": {"id": 10, "nodeSection": base_node_section_type["intersection"]},  # waiting-departure
@@ -175,7 +175,7 @@ class DataValidator:
                          for edgeId in edges if edges[edgeId]["startNode"] not in normal_nodes_id
                          and edges[edgeId]["endNode"] in normal_nodes_id}
         edges_normal_nodes = [i for i in sorted(edges) if edges[i]["startNode"] in normal_nodes_id]
-        previos_edge_len = len(edges_normal_nodes)
+        previous_edge_len = len(edges_normal_nodes)
         while True:
             for i in edges_normal_nodes:
                 edge = edges[i]
@@ -188,13 +188,13 @@ class DataValidator:
                         edges_normal_nodes.remove(i)
                         break
 
-            if previos_edge_len == len(edges_normal_nodes):
+            if previous_edge_len == len(edges_normal_nodes):
                 if len(edges_normal_nodes) != 0:
                     raise GraphError("Normal nodes error. Path contains normal nodes should start and end "
                                      "from different type of node.")
                 break
             else:
-                previos_edge_len = len(edges_normal_nodes)
+                previous_edge_len = len(edges_normal_nodes)
         self._validate_direction_combined_path(combined_path)
         return self._combined_normal_nodes_edges(edges, combined_path)
 
@@ -281,9 +281,6 @@ class DataValidator:
             if len(out_nodes) < 1:
                 raise GraphError("Missing after POI's node.")
 
-            in_node_type = self.source_nodes[in_nodes[0]]["type"]
-            out_node_type = self.source_nodes[out_nodes[0]]["type"]
-
             if len(in_nodes) != 1:
                 raise GraphError("Only one waiting/waiting-departure/intersection node is allowed as before "
                                  "POI's node.")
@@ -318,7 +315,6 @@ class DataValidator:
             elif in_node_type == base_node_type["intersection"]:
                 if not (in_edge_type[0] == way_type["narrowTwoWay"] and out_edge_type[0] == way_type["narrowTwoWay"]):
                     raise GraphError("Edges should be narrow two way in connection intersection->POI->intersection")
-
 
     def validate_parking_connection_nodes(self):
         """
@@ -475,7 +471,7 @@ class DataValidator:
             out_nodes = [self.reduced_edges[j]["sourceNodes"][-1] for j in sorted(self.reduced_edges)
                          if self.reduced_edges[j]["sourceNodes"][0] == i]
             if not (len(in_nodes) == 2 and len(out_nodes) == 2):
-                raise GraphError("Too much nodes connected with witing-departure node.")
+                raise GraphError("Too much nodes connected with waiting-departure node.")
 
             in_node_type = [self.source_nodes[in_nodes[0]]["type"], self.source_nodes[in_nodes[1]]["type"]]
             out_node_type = [self.source_nodes[out_nodes[0]]["type"], self.source_nodes[out_nodes[1]]["type"]]
@@ -1075,11 +1071,11 @@ class SupervisorGraphCreator(DataValidator):
         node_after_poi_id = b[0]
         node_before_poi_pos = self.source_nodes[node_before_poi_id]["pos"]
         node_after_poi_pos = self.source_nodes[node_after_poi_id]["pos"]
-        pA = [node_before_poi_pos[0], node_before_poi_pos[1]]
-        pB = [node_after_poi_pos[0], node_after_poi_pos[1]]
+        point_a = [node_before_poi_pos[0], node_before_poi_pos[1]]
+        point_b = [node_after_poi_pos[0], node_after_poi_pos[1]]
 
-        base_angle = math.radians(np.rad2deg(np.arctan2(pB[1] - pA[1], pB[0] - pA[0])))
-        distance = math.sqrt(math.pow(pA[0] - pB[0], 2) + math.pow(pA[1] - pB[1], 2))
+        base_angle = math.radians(np.rad2deg(np.arctan2(point_b[1] - point_a[1], point_b[0] - point_a[0])))
+        distance = math.sqrt(math.pow(point_a[0] - point_b[0], 2) + math.pow(point_a[1] - point_b[1], 2))
         translate_to_base_node = np.array([[1, 0, 0, node_before_poi_pos[0]],
                                           [0, 1, 0, node_before_poi_pos[1]],
                                           [0, 0, 1, 0],
@@ -1133,7 +1129,7 @@ class SupervisorGraphCreator(DataValidator):
             if self.graph.nodes[i]["sourceNode"] != source_node_id:
                 end_source_node_id = self.graph.nodes[i]["sourceNode"]
                 end_graph_node_id = i
-        pA = [self.source_nodes[source_node_id]["pos"][0], self.source_nodes[source_node_id]["pos"][1]]
+        point_a = [self.source_nodes[source_node_id]["pos"][0], self.source_nodes[source_node_id]["pos"][1]]
 
         path_type = [edgeType[2]["wayType"] for edgeType in self.graph.edges(data=True)
                      if (edgeType[0] == graph_node_id and edgeType[1] == end_graph_node_id) or
@@ -1149,10 +1145,10 @@ class SupervisorGraphCreator(DataValidator):
                     position = self.source_nodes[graph_source_nodes[0][-2]]["pos"]
             else:
                 position = self.source_nodes[end_source_node_id]["pos"]
-            pB = [position[0], position[1]]
-            base_angle = math.radians(np.rad2deg(np.arctan2(pB[1] - pA[1], pB[0] - pA[0])))
-            translate_to_base_node = np.array([[1, 0, 0, pA[0]],
-                                              [0, 1, 0, pA[1]],
+            point_b = [position[0], position[1]]
+            base_angle = math.radians(np.rad2deg(np.arctan2(point_b[1] - point_a[1], point_b[0] - point_a[0])))
+            translate_to_base_node = np.array([[1, 0, 0, point_a[0]],
+                                              [0, 1, 0, point_a[1]],
                                               [0, 0, 1, 0],
                                               [0, 0, 0, 1]])
 
@@ -1257,10 +1253,11 @@ class SupervisorGraphCreator(DataValidator):
             del source_path[-3:]
             source_path = source_path[::-1]
             # odleglosc do poczatku krawedzi
-            distanceA = math.sqrt(((start_pos[0] - source_path[0][0]) ** 2)+((start_pos[1] - source_path[0][1]) ** 2))
+            distance_a = math.sqrt(((start_pos[0] - source_path[0][0]) ** 2)+((start_pos[1] - source_path[0][1]) ** 2))
             # odleglosc do konca krawedzi
-            distanceB = math.sqrt(((start_pos[0] - source_path[-1][0]) ** 2)+((start_pos[1] - source_path[-1][1]) ** 2))
-            if distanceA > distanceB:  # punkt startowy jest na koncu wyznaczonej krawedzi
+            distance_b = math.sqrt(((start_pos[0] - source_path[-1][0]) ** 2) +
+                                   ((start_pos[1] - source_path[-1][1]) ** 2))
+            if distance_a > distance_b:  # punkt startowy jest na koncu wyznaczonej krawedzi
                 source_path[0] = end_pos
                 source_path[-1] = start_pos
             else:
@@ -1495,9 +1492,8 @@ class SupervisorGraphCreator(DataValidator):
         #                              edge_labels=max_robots, font_size=30)
 
         nx.draw_networkx(self.graph, node_pos, node_color=node_col, node_size=2000, font_size=30,
-                                          with_labels=True, font_color="w", width=4)
+                         with_labels=True, font_color="w", width=4)
         nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=max_robots, font_size=10)
-
 
         # nx.draw_networkx(self.graph, node_pos,edge_color= edge_col, node_color = node_col, node_size=3000,
         # font_size=25,with_labels=True,font_color="w", width=4)

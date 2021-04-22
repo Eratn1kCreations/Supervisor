@@ -154,6 +154,15 @@ class Behaviour:
         """
         Wyswietla informacje o zachownaiu
         """
+        param = "{"
+        n = len(self.parameters)
+        i = 0
+        for key in sorted(self.parameters):
+            i += 1
+            param += "'" + key + "': '" + str(self.parameters) + "'"
+            if i != n:
+                param += ","
+        param += "}"
         return "id: " + str(self.id) + ", parameters: " + str(self.parameters) + "\n"
 
 
@@ -243,7 +252,8 @@ class Task:
         Returns:
             (Behaviour): aktualnie wykonywane zachowanie w ramach zadania
         """
-        return self.behaviours[0] if self.current_behaviour_index == -1 else self.behaviours[self.current_behaviour_index]
+        return self.behaviours[0] if self.current_behaviour_index == -1 else \
+            self.behaviours[self.current_behaviour_index]
 
     def check_if_task_started(self):
         """
@@ -340,6 +350,7 @@ class Task:
         except:
             raise WrongTaskInputData("Task id: {}. Param '{}' wrong type. Required YYYY-mm-dd HH:MM:SS".
                                      format(task_id, self.PARAM["START_TIME"], task_time_type))
+
     # TODO
     # sprawdzenie kolejnosci zachowan w zadaniu
     # sprawdzenie czy pierwszym zachowaniem jest goto
@@ -352,8 +363,9 @@ class Task:
         """
         Wyswietla informacje o zadaniu.
         """
-        data = "id: " + str(self.id) + ", robot_id: " + str(self.robot_id) + ",start_tme: " + str(self.start_time)+"\n"
-        data += "current beh id: " + str(self.current_behaviour_index) + ", status: " + str(self.status) +\
+        data = "id: " + str(self.id) + ", robot_id: " + str(self.robot_id) + ",start_tme: " + str(
+            self.start_time) + "\n"
+        data += "current beh id: " + str(self.current_behaviour_index) + ", status: " + str(self.status) + \
                 ", weight: " + str(self.weight) + "\n"
         for behaviour in self.behaviours:
             data += behaviour.get_info()
@@ -411,15 +423,14 @@ class TasksManager:
             max_priority_value = task.weight if task.weight > max_priority_value else max_priority_value
             task.index = i + 1
 
-
         # odwrocenie wynika pozniej z funkcji sortujacej, zadanie o najwyzszym priorytecie powinno miec
         # najnizsza wartosc liczbowa
         for task in all_tasks:
             task.weight = max_priority_value - task.weight
 
         # sortowanie zadan po priorytetach i czasie zgłoszenia
-        tasks_id = [data.id for data in sorted(all_tasks, key=lambda
-                    task_data:(task_data.weight, task_data.index), reverse=False)]
+        tasks_id = [data.id for data in sorted(all_tasks, key=lambda task_data: (task_data.weight, task_data.index),
+                                               reverse=False)]
 
         self.tasks = []
         for i in tasks_id:
@@ -461,27 +472,29 @@ class Battery:
         capacity (float): pojemnosc baterii w [Ah]
         drive_usage (float): zuzycie baterii w trakcie jazdy w [A/h]
         stand_usage (float): zuzycie baterii w trakcie postoju w [A/h]
-        remaining_working_time (float): pozostaly czas pracy na baterii przy ktorym pojawia sie poziom ostrzegawczy [min]
+        remaining_working_time (float): pozostaly czas pracy na baterii przy ktorym pojawia sie
+                                        poziom ostrzegawczy [min]
     """
+
     def __init__(self):
         self.max_capacity = 40.0
         self.capacity = 40.0
         self.drive_usage = 5.0
         self.stand_usage = 3.5
-        self.remaining_working_time = 20.0 # [min]
+        self.remaining_working_time = 20.0  # [min]
 
     def __str__(self):
         return "Battery info: max_cappacity={max_capacity:.2f}   cappacity={capacity:.2f}" \
                "warning_capacity={warning_lvl:.2f}   critical_capacity={critical_lvl:.2f}   " \
                "drive_usage={drive_use:.2f}  " \
                "stand_usage={stand_use:.2f}  " \
-               "remaining_working_time={rem_time:.2f}".format(max_capacity = self.max_capacity,
-                                                              capacity = self.capacity,
-                                                              warning_lvl = self.get_warning_capacity(),
+               "remaining_working_time={rem_time:.2f}".format(max_capacity=self.max_capacity,
+                                                              capacity=self.capacity,
+                                                              warning_lvl=self.get_warning_capacity(),
                                                               critical_lvl=self.get_critical_capacity(),
-                                                              drive_use = self.drive_usage,
-                                                              stand_use = self.stand_usage,
-                                                              rem_time = self.remaining_working_time)
+                                                              drive_use=self.drive_usage,
+                                                              stand_use=self.stand_usage,
+                                                              rem_time=self.remaining_working_time)
 
     def get_warning_capacity(self):
         """
@@ -490,7 +503,7 @@ class Battery:
         Returns:
             (float): pojemnosc baterii w Ah
         """
-        return self.remaining_working_time/60*self.drive_usage
+        return self.remaining_working_time / 60 * self.drive_usage
 
     def get_critical_capacity(self):
         """
@@ -500,7 +513,7 @@ class Battery:
         Returns:
             (float): pojemnosc baterii w Ah
         """
-        return (self.remaining_working_time/2)/60*self.drive_usage
+        return (self.remaining_working_time / 2) / 60 * self.drive_usage
 
     def get_time_to_warn_allert(self):
         """
@@ -510,7 +523,7 @@ class Battery:
         """
         warn_capacity = self.get_warning_capacity()
         if warn_capacity <= self.capacity:
-            return (self.capacity - warn_capacity)/self.drive_usage*60
+            return (self.capacity - warn_capacity) / self.drive_usage * 60
         else:
             return -1
 
@@ -522,7 +535,7 @@ class Battery:
         """
         critical_capacity = self.get_critical_capacity()
         if critical_capacity <= self.capacity:
-            return (self.capacity - critical_capacity)/self.drive_usage*60
+            return (self.capacity - critical_capacity) / self.drive_usage * 60
         else:
             return -1
 
@@ -538,7 +551,7 @@ class Battery:
         Returns:
             (bool): zwraca informacje o wystarczajacej liczbie energii
         """
-        used_capacity = drive_time_min/60*self.drive_usage + stand_time_min/60*self.stand_usage # zamiana z minut na godziny
+        used_capacity = drive_time_min / 60 * self.drive_usage + stand_time_min / 60 * self.stand_usage  # z min na h
         predicted_capacity_lvl = self.capacity - used_capacity
         return predicted_capacity_lvl > self.get_critical_capacity()
 
@@ -549,20 +562,21 @@ class Robot:
 
     Attributes:
         id (string): id robota
-        edge ((string,string)): krawedz na ktorej aktualnie znajduje sie robot
+        edge ((int,int)): krawedz na ktorej aktualnie znajduje sie robot
         poi_id (string): id poi w ktorym znajduje sie robot
         planning_on (bool): informuje czy robot jest w trybie planownaia
         is_free (bool): informuje czy robot aktualnie wykonuje jakies zachowanie czy nie
         time_remaining (float/None): czas do ukonczenia zachowania
         task (Task): zadanie przypisane do robota
-        next_task_edge ((string,string)): informuje o kolejnej krawedzi przejscia ktora nalezy wyslac do robota
+        next_task_edge ((int,int)): informuje o kolejnej krawedzi przejscia ktora nalezy wyslac do robota
         end_beh_edge (bool): informuje czy zachowanie po przejsciu krawedzia zostanie ukonczone
         battery (Battery): bateria w robocie
     """
+
     def __init__(self, robot_data):
         """
         Parameters:
-            robot_data ({"id": string, "edge": (string, string), "poiId" (string), "planningOn": bool, "isFree": bool,
+            robot_data ({"id": string, "edge": (int, int), "poiId" (string), "planningOn": bool, "isFree": bool,
                          "timeRemaining": float/None}): slownik z danymi o robocie
         """
         # self.validate_input(robot_data)
@@ -581,7 +595,7 @@ class Robot:
     def validate_input(self, data):
         """
         Parameters:
-            data ({"id": string, "edge": (string, string), "planningOn": bool, "isFree": bool,
+            data ({"id": string, "edge": (int, int), "planningOn": bool, "isFree": bool,
                          "timeRemaining": float/None}): slownik z danymi o robocie
         """
         # sprawdzenie czy dane wejsciowe sa dobrego typu
@@ -627,7 +641,7 @@ class Robot:
     def get_current_node(self):
         """
         Returns:
-             (string): wezel w ktorym znajduje sie robot lub znajdzie po zakonczeniu zachowania
+             (int): wezel w ktorym znajduje sie robot lub znajdzie po zakonczeniu zachowania
         """
         return None if self.edge is None else self.edge[1]
 
@@ -677,6 +691,7 @@ class RobotsPlanManager:
         robots ({"id": Robot, "id": Robot, ...}): slownik z robotami do ktorych beda przypisywane zadania
 
     """
+
     def __init__(self, robots, base_poi_edges):
         """
         Parameters:
@@ -759,7 +774,7 @@ class RobotsPlanManager:
 
         Parameters:
             robot_id (string): id robota
-            next_edge ((string,string)): nastepna krawedz jaka ma sie poruszac robot
+            next_edge ((int,int)): nastepna krawedz jaka ma sie poruszac robot
         """
         if not self.check_if_robot_id_exist(robot_id):
             raise TaskManagerError("Robot on id '{}' doesn't exist".format(robot_id))
@@ -807,7 +822,7 @@ class RobotsPlanManager:
         Zwraca liste z id robotow, ktore znajduja sie na podanych krawedziach
 
         Parameters:
-            edges ([(string,string), (string,string), ... ]): lista krawedzi na ktorych maja byc znalezione wszystkie
+            edges ([(int,int), (int,int), ... ]): lista krawedzi na ktorych maja byc znalezione wszystkie
                 roboty
 
         Returns:
@@ -820,7 +835,7 @@ class RobotsPlanManager:
         Zwraca liste z id robotow, ktore znajduja sie na podanych krawedziach. Roboty bez zadan zostaja pominiete.
 
        Parameters:
-            edges ([(string,string), (string,string), ... ]): lista krawedzi na ktorych maja byc znalezione wszystkie
+            edges ([(int,int), (int,int), ... ]): lista krawedzi na ktorych maja byc znalezione wszystkie
                 roboty
 
         Returns:
@@ -849,6 +864,7 @@ class PoisManager:
     Attributes:
         pois ({poi_id: {"type": typ_poi}, ... ): slownik poi wraz z ich typem
     """
+
     def __init__(self, graph_data):
         """
         Parameters:
@@ -917,6 +933,7 @@ class PlanningGraph:
     Attributes:
         graph (DiGraph): dane o grafie z klasy SupervisorGraphCreator
     """
+
     def __init__(self, graph):
         """
         Parameters:
@@ -931,8 +948,8 @@ class PlanningGraph:
         docelowym.
 
         Parameters:
-            robot_node (string): wezel grafu z supervisora w ktorym aktualnie jest robot
-            target_node (string): wezel grafu z supervisora do ktorego zmierza robot
+            robot_node (int): wezel grafu z supervisora w ktorym aktualnie jest robot
+            target_node (int): wezel grafu z supervisora do ktorego zmierza robot
         """
         no_block_poi_ids = ["0", self.graph.nodes[robot_node]["poiId"], self.graph.nodes[target_node]["poiId"]]
         for edge in self.graph.edges(data=True):
@@ -952,7 +969,7 @@ class PlanningGraph:
             poi_type (gc.base_node_type["nazwa_typu"]): typ poi
 
         Returns:
-            (string): koncowy wezel krawedzi dojazdu do wlasciwego stanowiska
+            (int): koncowy wezel krawedzi dojazdu do wlasciwego stanowiska
         """
         if poi_id not in self.pois:
             raise PlaningGraphError("POI {} doesn't exist on graph.".format(poi_id))
@@ -973,7 +990,7 @@ class PlanningGraph:
             poi_id (string): id POI z bazy
 
         Returns:
-            (string): koncowy wezel krawedzi zwiazanej z zachowaniem dokowania
+            (int): koncowy wezel krawedzi zwiazanej z zachowaniem dokowania
         """
         if poi_id not in self.pois:
             raise PlaningGraphError("POI {} doesn't exist on graph.".format(poi_id))
@@ -992,7 +1009,7 @@ class PlanningGraph:
             poi_type (gc.base_node_type["nazwa_typu"]): typ POI
 
         Returns:
-            (string): koncowy wezel krawedzi zwiazanej z zachowaniem WAIT
+            (int): koncowy wezel krawedzi zwiazanej z zachowaniem WAIT
         """
         if poi_id not in self.pois:
             raise PlaningGraphError("POI {} doesn't exist on graph.".format(poi_id))
@@ -1016,7 +1033,7 @@ class PlanningGraph:
             poi_id (string): id POI z bazy
 
         Returns:
-            (string): koncowy wezel krawedzi zwiazanej z zachowaniem UNDOCK
+            (int): koncowy wezel krawedzi zwiazanej z zachowaniem UNDOCK
         """
         if poi_id not in self.pois:
             raise PlaningGraphError("POI {} doesn't exist on graph.".format(poi_id))
@@ -1067,7 +1084,7 @@ class PlanningGraph:
         siebie wzajemnie zalezne.
 
         Parameters:
-            edge((string,string)): krawedz grafu
+            edge((int,int)): krawedz grafu
 
         Returns:
             (int): id grupy krawedzi, 0 dla krawedzi nie wchodzacych w sklad grupy
@@ -1080,7 +1097,7 @@ class PlanningGraph:
         ona do grupy. Dla niezerowych grup liczba przypisanych robotow do krawedzi grafu musi być 0 lub 1.
 
         Parameters:
-            edge (string,string): krawedz dla ktorej maja byc zwrocone roboty
+            edge (int, int): krawedz dla ktorej maja byc zwrocone roboty
 
         Returns:
             ([string, string, ... ]): lista id robotow, ktore przypisane sa do danej krawedzi lub jesli krawedz stanowi
@@ -1110,7 +1127,7 @@ class PlanningGraph:
             group_id (int): id grupy krawedzi
 
         Returns:
-            ([(string,string), (string,string), ... ]): lista krawedzi nalezaca do podanej grupy
+            ([(int, int), (int,int), ... ]): lista krawedzi nalezaca do podanej grupy
         """
         return [(edge[0], edge[1]) for edge in self.graph.edges(data=True) if edge[2]["edgeGroupId"] == group_id]
 
@@ -1119,7 +1136,7 @@ class PlanningGraph:
         Zwraca maksymalna dozwolona liczbe robotow dla danej krawedzi. Jesli krawedz nalezy do grupy to 1 robot.
 
         Attributes:
-            edge ((string,string)): dana krawedz
+            edge ((int,int)): dana krawedz
 
         Returns:
               (int): maksymalna liczba robotow jaka moze znajdowac sie na danej krawedzi
@@ -1131,7 +1148,7 @@ class PlanningGraph:
         Dla podanej krawedzi zwraca zwiazane z nia POI, jesli takie istnieje.
 
         Parameters:
-            edge (string,string): krawedz grafu
+            edge (int, int): krawedz grafu
 
         Returns:
             (string): zwraca id poi, jesli krawedz zwiazana jest z POI, jesli nie to None
@@ -1148,8 +1165,8 @@ class PlanningGraph:
         TODO - obsluga gdy wezel poczatkowy jest tym samym co koncowy np. ponowne zlecenie dojazdu tego samego
         robota do parkingu
         Parameters:
-            start_node (string): wezel od ktorego ma byc rozpoczete planowanie
-            end_node (string): wezel celu
+            start_node (int): wezel od ktorego ma byc rozpoczete planowanie
+            end_node (int): wezel celu
 
         Returns:
             (list): kolejne krawedzie grafu, ktorymi ma sie poruszac robot, aby dotrzec do celu
@@ -1165,8 +1182,8 @@ class PlanningGraph:
         Zwraca wage dojazdu do punktu.
 
         Parameters:
-            start_node (string): wezel od ktorego ma byc rozpoczete planowanie
-            end_node (string): wezel celu
+            start_node (int): wezel od ktorego ma byc rozpoczete planowanie
+            end_node (int): wezel celu
 
         Returns:
             (float): czas dojazdu od start_node do end_node
@@ -1221,15 +1238,15 @@ class PlanningGraph:
         """
         task_travel_time = self._get_task_travel_stands_time(robot.edge[1], task)
         swap_task_time = self._get_task_travel_stands_time(task_travel_time["end_node"], swap_task)
-        drive_time = (task_travel_time["drive_time"] + swap_task_time["drive_time"])/60 # zamiana na minuty
-        stand_time = (task_travel_time["stand_time"] + swap_task_time["stand_time"])/60 # zamiana na minuty
+        drive_time = (task_travel_time["drive_time"] + swap_task_time["drive_time"]) / 60  # zamiana na minuty
+        stand_time = (task_travel_time["stand_time"] + swap_task_time["stand_time"]) / 60  # zamiana na minuty
         total_time = drive_time + stand_time
         is_no_battery_critical_allert = robot.battery.is_enough_capacity_before_critical_alert(drive_time, stand_time)
 
-        now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ("%Y-%m-%d %H:%M:%S"))
-        swap_time = datetime.strptime(swap_task.start_time,("%Y-%m-%d %H:%M:%S"))
+        now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        swap_time = datetime.strptime(swap_task.start_time, "%Y-%m-%d %H:%M:%S")
 
-        time_to_swap = (swap_time - now)/timedelta(minutes=1)
+        time_to_swap = (swap_time - now) / timedelta(minutes=1)
         if time_to_swap < total_time:
             # zadanie wymiany powinno zostac zlecone i przypisane do robota:
             return swap_task
@@ -1244,11 +1261,11 @@ class PlanningGraph:
     def _get_task_travel_stands_time(self, node_id, task):
         """
         Parameters:
-            node_id (string): id wezla grafu rozszerzonego od ktorego wyliczane bedzie pierwsze zachowanie goto
+            node_id (int): id wezla grafu rozszerzonego od ktorego wyliczane bedzie pierwsze zachowanie goto
             task (Task): zadanie dla robota
 
         Returns:
-            ({"drive_time": float, "stand_time": float, "end_node": string}): czasy postoju, aktywnej jazdy oraz wezel,
+            ({"drive_time": float, "stand_time": float, "end_node": int}): czasy postoju, aktywnej jazdy oraz wezel,
                 w ktorym znajdzie sie robot po ukonczeniu zadania
         """
 
@@ -1256,7 +1273,6 @@ class PlanningGraph:
         stand_time = 0.0
         last_node = node_id
         last_poi_id = task.get_poi_goal()
-        poi_type = self.pois[last_poi_id]
 
         for behaviour in task.behaviours:
             if behaviour.get_type() == Behaviour.TYPES["goto"]:
@@ -1307,7 +1323,7 @@ class Dispatcher:
         """
         self.planning_graph = PlanningGraph(graph_data)
         self.pois = PoisManager(graph_data)
-        
+
         self.robots_plan = RobotsPlanManager(robots, self.planning_graph.get_base_pois_edges())
         self.init_robots_plan(robots)
 
@@ -1349,8 +1365,8 @@ class Dispatcher:
             robot_id (string): id robota dla ktorego ma byc zwrocony plan
 
         Returns:
-             ({"taskId": string, "nextEdge": (string,string)/None, "endBeh": boolean/None},...}): plan dla robotow,
-             ktory moze zostac od razu zrealizowany, gdyz nie ma kolizji, w preciwnym wypadku None
+             ({"taskId": string, "nextEdge": (int,int)/None, "endBeh": boolean/None},...}): plan dla robotow,
+             ktory moze zostac od razu zrealizowany, gdyz nie ma kolizji, w przeciwnym wypadku None
         """
         self.planning_graph = PlanningGraph(graph_data)
         self.set_plan(robots, tasks)
@@ -1434,7 +1450,7 @@ class Dispatcher:
             task_started = unanalyzed_task.check_if_task_started()
             for robot in self.robots_plan.get_free_robots():
                 robot_poi = self.planning_graph.get_poi(robot.edge)
-                if (robot.id == unanalyzed_task.robot_id and task_started and current_behaviour_is_goto)\
+                if (robot.id == unanalyzed_task.robot_id and task_started and current_behaviour_is_goto) \
                         and (robot_poi == task_poi_goal or robot_poi is None):
                     self.robots_plan.set_task(robot.id, unanalyzed_task)
                     self.set_task_edge(robot.id)
@@ -1513,7 +1529,7 @@ class Dispatcher:
                 # do wolnych robotow przypisanie zadan, jesli robot byl wolny i blokowal POI to traktowany jest jako
                 # blokujacy slot do wyslania robota do POI
                 self.assign_tasks_to_robots(all_robots_tasks, free_robots_id)
-            elif n_free_robots > 0 and len(all_free_tasks) >0 and free_robots_in_poi_task_assigned:
+            elif n_free_robots > 0 and len(all_free_tasks) > 0 and free_robots_in_poi_task_assigned:
                 # jesli sa dalej wolne roboty w POI to poszukiwane jest pierwsze mozliwe do wykonania zadanie dojazdu
                 # do tego samego POI
                 for robot_id in free_robots_id:
@@ -1542,7 +1558,7 @@ class Dispatcher:
                 break
 
             current_time = time.time()
-            if (current_time-init_time) > 5:
+            if (current_time - init_time) > 5:
                 raise TimeoutPlanning("Set other tasks loop is too long.")
 
     def set_task_edge(self, robot_id):
@@ -1555,7 +1571,7 @@ class Dispatcher:
         robot = self.robots_plan.get_robot_by_id(robot_id)
         if robot.planning_on and robot.is_free:
             # robot wykonal fragment zachowania lub ma przydzielone zupelnie nowe zadanie
-            # weryfikacja czy koleset jna akcja jazdy krawedzia moze zostac wykonana
+            # weryfikacja czy kolejna akcja jazdy krawedzia moze zostac wykonana
             start_node = robot.get_current_node()
             end_node = self.get_undone_behaviour_node(robot.task)
             path_nodes = self.planning_graph.get_path(start_node, end_node)
@@ -1584,7 +1600,7 @@ class Dispatcher:
             robots_using_poi = np.unique(robots_using_poi)
             free_slots = self.get_free_slots_in_pois()[poi_id]
             poi_availability = free_slots > 0 or poi_group_id == robot_current_group_id \
-                               or robot_current_group_id not in poi_group_ids  \
+                               or robot_current_group_id not in poi_group_ids \
                                or (len(robots_using_poi) <= max_robots and robot_id in robots_using_poi)
 
             if next_group_id != 0:
@@ -1776,17 +1792,17 @@ class Dispatcher:
                 od kolejnego zadania do wykonania
 
         Returns:
-            (string): id wezla z grafu rozszerzonego na ktorym opiera sie tworzenie zadan
+            (int): id wezla z grafu rozszerzonego na ktorym opiera sie tworzenie zadan
         """
         poi_id = task.get_poi_goal()
         behaviour = task.get_current_behaviour()
-        goalNode = None
+        goal_node = None
         if behaviour.get_type() == Behaviour.TYPES["goto"]:
-            goalNode = self.planning_graph.get_end_go_to_node(poi_id, self.pois.get_type(poi_id))
+            goal_node = self.planning_graph.get_end_go_to_node(poi_id, self.pois.get_type(poi_id))
         elif behaviour.get_type() == Behaviour.TYPES["dock"]:
-            goalNode = self.planning_graph.get_end_docking_node(poi_id)
+            goal_node = self.planning_graph.get_end_docking_node(poi_id)
         elif behaviour.get_type() == Behaviour.TYPES["wait"] or behaviour.get_type() == Behaviour.TYPES["bat_ex"]:
-            goalNode = self.planning_graph.get_end_wait_node(poi_id, self.pois.get_type(poi_id))
+            goal_node = self.planning_graph.get_end_wait_node(poi_id, self.pois.get_type(poi_id))
         elif behaviour.get_type() == Behaviour.TYPES["undock"]:
-            goalNode = self.planning_graph.get_end_undocking_node(poi_id)
-        return goalNode
+            goal_node = self.planning_graph.get_end_undocking_node(poi_id)
+        return goal_node
