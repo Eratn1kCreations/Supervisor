@@ -6,6 +6,7 @@ import graph_creator as gc
 import dispatcher as disp
 from datetime import datetime, timedelta
 
+
 def get_graph(robots_raw):
     graph_in = gc.SupervisorGraphCreator(node_dict, edge_dict, pois_raw)
     graph_in.graph = copy.deepcopy(supervisor_graph)
@@ -533,9 +534,9 @@ def test_dispatcher_set_task_assigned_to_robots():
 
     assert len(dispatcher.unanalyzed_tasks_handler.tasks) == 0
 
-    # zestaww 2
+    # zestaw 2
     robots_raw = [
-        {"id": "1", "edge": ((41, 19)), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "0"},
+        {"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "0"},
         {"id": "2", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "0"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
@@ -899,13 +900,6 @@ def test_dispatcher_set_doing_and_assigned_task_to_robots_1():
     dispatcher = disp.Dispatcher(get_graph(robots_raw), robots)
     dispatcher.set_tasks(tasks)
     dispatcher.set_tasks_doing_by_robots()
-    robots_using_poi = {"1": 0,  # max 10
-                        "2": 0,  # 1
-                        "3": 2,  # 8
-                        "4": 2,  # 11
-                        "5": 1,  # 6 ?? z rysunku krawedzi wynika ze za duzo
-                        "6": 2,  # 8
-                        "7": 3}  # 6
     free_slots = {"1": 10, "2": 1, "3": 6, "4": 9, "5": 5, "6": 6, "7": 3}
     result = dispatcher.get_free_slots_in_pois()
     for poi_id in result:
@@ -1035,13 +1029,6 @@ def test_dispatcher_set_doing_and_assigned_task_to_robots_2():
     dispatcher = disp.Dispatcher(get_graph(robots_raw), robots)
     dispatcher.set_tasks(tasks)
     dispatcher.set_tasks_doing_by_robots()
-    robots_using_poi = {"1": 0,  # max 10
-                        "2": 0,  # 1
-                        "3": 1,  # 8
-                        "4": 2,  # 11
-                        "5": 1,  # 6 ?? z rysunku krawedzi wynika ze za duzo
-                        "6": 2,  # 8
-                        "7": 2}  # 6
     free_slots = {"1": 10, "2": 1, "3": 7, "4": 8, "5": 5, "6": 5, "7": 4}
     result = dispatcher.get_free_slots_in_pois()
     for poi_id in result:
@@ -1606,6 +1593,90 @@ def test_dispatcher_set_task_edge_blocked_goal_waiting_departure_node_in_poi():
 
 
 @pytest.mark.dispatcher
+def test_dispatcher_set_task_edge_blocked_goal_waiting_departure_node_in_poi_2_robots_waiting():
+    # w poi
+    # robot na skrzyzowaniu w wezle waiting-departure
+    robots_raw = [
+        {"id": "1", "edge": (57, 58), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "0"},
+        {"id": "2", "edge": (57, 58), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "0"}
+    ]
+    tasks_raw = [{"id": "1",
+                  "behaviours": [{"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
+                                 {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                 {"id": "3", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}}],
+                  "current_behaviour_index": 0,  # index tablicy nie zachowania
+                  "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+                  "robot": "1",
+                  "start_time": "2018-06-29 07:37:27",
+                  "weight": 2,
+                  "priority": 2},
+                 {"id": "2",
+                  "behaviours": [{"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
+                                 {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}],
+                  "current_behaviour_index": 0,  # index tablicy nie zachowania
+                  "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+                  "robot": "2",
+                  "start_time": "2018-06-29 07:37:27",
+                  "weight": 2,
+                  "priority": 2}]
+    robots = {}
+    for i in range(len(robots_raw)):
+        robot = disp.Robot(robots_raw[i])
+        robot.task = disp.Task(tasks_raw[i])
+        robots[robot.id] = robot
+    dispatcher = disp.Dispatcher(get_graph(robots_raw), [])
+    expected_result = {"1": (58, 29), "2": None}
+    # robot_id: edge
+    for i in [robot["id"] for robot in robots_raw]:
+        dispatcher.robots_plan.robots[i] = robots[i]
+        robot = dispatcher.robots_plan.robots[i]
+        dispatcher.set_task_edge(i)
+        assert robot.next_task_edge == expected_result[i]
+
+
+@pytest.mark.dispatcher
+def test_dispatcher_set_task_edge_blocked_goal_waiting_departure_node_in_poi_2_robots_waiting_next_step():
+    # w poi
+    # robot na skrzyzowaniu w wezle waiting-departure
+    robots_raw = [
+        {"id": "1", "edge": (58, 29), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "0"},
+        {"id": "2", "edge": (57, 58), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "0"}
+    ]
+    tasks_raw = [{"id": "1",
+                  "behaviours": [{"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
+                                 {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                 {"id": "3", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}}],
+                  "current_behaviour_index": 0,  # index tablicy nie zachowania
+                  "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+                  "robot": "1",
+                  "start_time": "2018-06-29 07:37:27",
+                  "weight": 2,
+                  "priority": 2},
+                 {"id": "2",
+                  "behaviours": [{"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
+                                 {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}],
+                  "current_behaviour_index": 0,  # index tablicy nie zachowania
+                  "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+                  "robot": "2",
+                  "start_time": "2018-06-29 07:37:27",
+                  "weight": 2,
+                  "priority": 2}]
+    robots = {}
+    for i in range(len(robots_raw)):
+        robot = disp.Robot(robots_raw[i])
+        robot.task = disp.Task(tasks_raw[i])
+        robots[robot.id] = robot
+    dispatcher = disp.Dispatcher(get_graph(robots_raw), [])
+    expected_result = {"1": (29, 13), "2": None}
+    # robot_id: edge
+    for i in [robot["id"] for robot in robots_raw]:
+        dispatcher.robots_plan.robots[i] = robots[i]
+        robot = dispatcher.robots_plan.robots[i]
+        dispatcher.set_task_edge(i)
+        assert robot.next_task_edge == expected_result[i]
+
+
+@pytest.mark.dispatcher
 def test_dispatcher_get_free_task_to_assign():
     tasks_raw = [{"id": "1",
                   "behaviours": [{"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
@@ -2052,8 +2123,6 @@ def test_dispatcher_from_different_pois_and_queues():
                        "4": {"taskId": "4", "nextEdge": (88, 33), "endBeh": False},
                        "5": {"taskId": "5", "nextEdge": (19, 42), "endBeh": False},
                        "6": {"taskId": "7", "nextEdge": (19, 42), "endBeh": False}}
-    # for step in plan:
-        # print(step, plan[step])
 
     assert len(plan) == 6
 
@@ -2150,7 +2219,7 @@ def test_dispatcher_assigned_tasks_swap_battery():
         new_robot.battery.stand_usage = 3.5
         robots[robot["id"]] = new_robot
 
-    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ("%Y-%m-%d %H:%M:%S"))
+    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
     swap_time = (now + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
 
     tasks_raw = [{"id": "1",
@@ -2252,6 +2321,7 @@ def test_dispatcher_assigned_tasks_swap_battery():
     assert dispatcher.robots_plan.robots["4"].task.id == tasks[6].id
     assert dispatcher.robots_plan.robots["5"].task.id == tasks[7].id
 
+
 @pytest.mark.dispatcher
 def test_dispatcher_assigned_tasks_in_progress_swap_task():
     # 1 zadanie przypisane normalnie, bo zaplanowana wymiana jest duzo pozniej              - brak wymiany
@@ -2271,7 +2341,7 @@ def test_dispatcher_assigned_tasks_in_progress_swap_task():
         new_robot.battery.stand_usage = 3.5
         robots[robot["id"]] = new_robot
 
-    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ("%Y-%m-%d %H:%M:%S"))
+    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
     swap_time = (now + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
 
     tasks_raw = [{"id": "1",
@@ -2345,13 +2415,14 @@ def test_dispatcher_assigned_tasks_in_progress_swap_task():
     dispatcher.init_robots_plan(robots)
     dispatcher.set_tasks_doing_by_robots()
 
-    assert dispatcher.robots_plan.robots["1"].task == None
+    assert dispatcher.robots_plan.robots["1"].task is None
     assert dispatcher.robots_plan.robots["4"].task.id == tasks[4].id
-    assert dispatcher.robots_plan.robots["5"].task == None
+    assert dispatcher.robots_plan.robots["5"].task is None
+
 
 @pytest.mark.dispatcher
 def test_dispatcher_free_robots_go_to_current_poi_goal():
-    node_dict = {
+    node_dict_data = {
         "1": {'pos': (0, 0), 'type': {'id': 2, 'nodeSection': 2}, 'name': None, 'poiId': '1'},
         "2": {'pos': (5, 0), 'type': {'id': 14, 'nodeSection': 5}, 'name': None, 'poiId': '0'},
         "3": {'pos': (5, -5), 'type': {'id': 14, 'nodeSection': 5}, 'name': None, 'poiId': '0'},
@@ -2359,17 +2430,17 @@ def test_dispatcher_free_robots_go_to_current_poi_goal():
         "5": {'pos': (15, -10), 'type': {'id': 1, 'nodeSection': 1}, 'name': None, 'poiId': '2'},
     }
 
-    edge_dict = {
+    edge_dict_data = {
         "1": {"startNode": "1", "endNode": "2", "type": gc.way_type["narrowTwoWay"], "isActive": True},
         "2": {"startNode": "2", "endNode": "3", "type": gc.way_type["twoWay"], "isActive": True},
         "3": {"startNode": "3", "endNode": "4", "type": gc.way_type["twoWay"], "isActive": True},
         "4": {"startNode": "4", "endNode": "5", "type": gc.way_type["narrowTwoWay"], "isActive": True},
     }
 
-    pois_raw = [{"id": "1", "pose": None, "type": gc.base_node_type["load"]},
-                {"id": "2", "pose": None, "type": gc.base_node_type["charger"]}]
+    pois_raw_data = [{"id": "1", "pose": None, "type": gc.base_node_type["load"]},
+                     {"id": "2", "pose": None, "type": gc.base_node_type["charger"]}]
 
-    graph_in = gc.SupervisorGraphCreator(node_dict, edge_dict, pois_raw)
+    graph_in = gc.SupervisorGraphCreator(node_dict_data, edge_dict_data, pois_raw_data)
 
     robots_raw = [
         {"id": "1", "edge": None, "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
@@ -2383,9 +2454,6 @@ def test_dispatcher_free_robots_go_to_current_poi_goal():
         new_robot.battery.drive_usage = 5.0
         new_robot.battery.stand_usage = 3.5
         robots[robot["id"]] = new_robot
-
-    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ("%Y-%m-%d %H:%M:%S"))
-    swap_time = (now + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
 
     tasks_raw = [{"id": "1",
                   "behaviours": [{"id": "1", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}},
@@ -2401,4 +2469,97 @@ def test_dispatcher_free_robots_go_to_current_poi_goal():
     dispatcher = disp.Dispatcher(graph_in, robots)
     dispatcher.set_tasks(tasks)
     dispatcher.init_robots_plan(robots)
-    assert dispatcher.get_plan_all_free_robots(graph_in,robots,tasks) == {'1': {'taskId': '1', 'nextEdge': (6, 5), 'endBeh': True}}
+    assert dispatcher.get_plan_all_free_robots(graph_in, robots, tasks) == {'1': {'taskId': '1', 'nextEdge': (6, 5),
+                                                                                  'endBeh': True}}
+
+
+@pytest.mark.dispatcher
+def test_dispatcher_go_to_robots_to_poi_3():
+    """Jeden z robotow zakonczyl zachowanie wait w poi 6 i oczekuje na dalszy krok z dispatchera dojazdu do POI 3,
+       a drugi jest w trakcie dojazdu do poi 3"""
+    robots_raw = [
+        {"id": "1", "edge": (15, 16), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "6"},
+        {"id": "2", "edge": (74, 75), "planningOn": True, "isFree": False, "timeRemaining": 0, "poiId": "6"}
+    ]
+    robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
+    tasks_raw = [
+        {"id": "1",
+         "behaviours": [{"id": "1", "parameters": {"to": "6", "name": disp.Behaviour.TYPES["goto"]}},
+                        {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                        {"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
+                        {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}],
+         "current_behaviour_index": 2,
+         "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+         "robot": "1",
+         "start_time": "2018-06-29 07:55:27",
+         "weight": 3,
+         "priority": 3
+         },
+        {"id": "3",
+         "behaviours": [{"id": "1", "parameters": {"to": "6", "name": disp.Behaviour.TYPES["goto"]}},
+                        {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                        {"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
+                        {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}],
+         "current_behaviour_index": 2,
+         "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+         "robot": "2",
+         "start_time": "2018-06-29 07:55:27",
+         "weight": 3,
+         "priority": 3
+         },
+    ]
+    tasks = [disp.Task(data) for data in tasks_raw]
+    dispatcher = disp.Dispatcher(get_graph(robots_raw), robots)
+    plan = dispatcher.get_plan_all_free_robots(get_graph(robots_raw), robots, tasks)
+    print(plan)
+    expected_result = {'1': {'nextEdge': (16, 24), 'endBeh': False, 'taskId': '1'}}
+    assert expected_result == plan
+
+
+@pytest.mark.dispatcher
+def test_dispatcher_go_to_robots_to_poi_3_new_graph_2():
+    """Jeden z robotow zakonczyl zachowanie wait w poi 6 i oczekuje na dalszy krok z dispatchera dojazdu do POI 3,
+       a drugi jest w trakcie dojazdu do poi 3"""
+    graph_in = gc.SupervisorGraphCreator(node_dict, edge_dict, pois_raw)
+
+    robots_raw = [
+        {"id": "0", "edge": (47, 48), "planningOn": True, "isFree": False, "timeRemaining": 0, "poiId": "1"},
+        {"id": "1", "edge": (13, 14), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+    ]
+    for robot in robots_raw:
+        graph_in.graph.edges[robot["edge"]]["robots"] = graph_in.graph.edges[robot["edge"]]["robots"] + [robot["id"]]
+    robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
+    robots["0"].planning_on = True
+    robots["0"].next_task_edge = None
+    robots["1"].planning_on = True
+    robots["1"].next_task_edge = None
+    tasks_raw = [
+        {"id": "1",
+         "behaviours": [{"id": "1", "parameters": {"to": "6", "name": disp.Behaviour.TYPES["goto"]}},
+                        {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                        {"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
+                        {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}],
+         "current_behaviour_index": 2,
+         "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+         "robot": "0",
+         "start_time": "2018-06-29 07:55:27",
+         "weight": 3,
+         "priority": 3
+         },
+        {"id": "2",
+         "behaviours": [{"id": "1", "parameters": {"to": "6", "name": disp.Behaviour.TYPES["goto"]}},
+                        {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                        {"id": "1", "parameters": {"to": "3", "name": disp.Behaviour.TYPES["goto"]}},
+                        {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}],
+         "current_behaviour_index": 2,
+         "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+         "robot": "1",
+         "start_time": "2018-06-29 07:55:27",
+         "weight": 3,
+         "priority": 3
+         },
+    ]
+    tasks = [disp.Task(data) for data in tasks_raw]
+    dispatcher = disp.Dispatcher(graph_in, robots)
+    plan = dispatcher.get_plan_all_free_robots(graph_in, robots, tasks)
+    assert plan == {}
