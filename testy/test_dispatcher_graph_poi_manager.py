@@ -513,75 +513,39 @@ def test_planning_graph_get_base_pois_edges():
         expected_edge = expected_result[poi]
         assert result[poi] == expected_edge
 
+
 @pytest.mark.planing_graph
 def test_get_task_travel_stands_time():
     graph = disp.PlanningGraph(graph_in)
     node_id = 19
     task = {"id": "1",
-     "behaviours": [{"id": "1", "parameters": {"to": "7", "name": disp.Behaviour.TYPES["goto"]}},
-                    {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
-                    {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
-                    {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
-                    {"id": "5", "parameters": {"to": "6", "name": disp.Behaviour.TYPES["goto"]}},
-                    {"id": "6", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}
-                    ],
-     "current_behaviour_index": -1,  # index tablicy nie zachowania
-     "status": disp.Task.STATUS_LIST["TO_DO"],
-     "robot": None,
-     "start_time": "2018-06-29 07:37:27",
-     "weight": 2,
-     "priority": 2}
+            "behaviours": [{"id": "1", "parameters": {"to": "7", "name": disp.Behaviour.TYPES["goto"]}},
+                           {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                           {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                           {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
+                           {"id": "5", "parameters": {"to": "6", "name": disp.Behaviour.TYPES["goto"]}},
+                           {"id": "6", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}
+                           ],
+            "current_behaviour_index": -1,  # index tablicy nie zachowania
+            "status": disp.Task.STATUS_LIST["TO_DO"],
+            "robot": None,
+            "start_time": "2018-06-29 07:37:27",
+            "weight": 2,
+            "priority": 2}
 
-    drive_time = graph.get_path_length(19,5) + graph.get_path_length(5, 6) + graph.get_path_length(7, 8) + \
-                 graph.get_path_length(8, 15)
+    drive_time = graph.get_path_length(19, 5) + graph.get_path_length(5, 6) + graph.get_path_length(7, 8)
+    drive_time += graph.get_path_length(8, 15)
+
     stand_time = graph.get_path_length(6, 7) + graph.get_path_length(15, 16)
 
     result = graph._get_task_travel_stands_time(node_id, disp.Task(task))
     assert result["drive_time"] == drive_time
     assert result["stand_time"] == stand_time
 
+
 @pytest.mark.planing_graph
 def test_select_next_task_passed_swap_start_time():
     graph = disp.PlanningGraph(graph_in)
-    node_id = 19
-    task = disp.Task({"id": "1",
-     "behaviours": [{"id": "1", "parameters": {"to": "7", "name": disp.Behaviour.TYPES["goto"]}},
-                    {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
-                    {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
-                    {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
-                    {"id": "5", "parameters": {"to": "6", "name": disp.Behaviour.TYPES["goto"]}},
-                    {"id": "6", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}
-                    ],
-     "current_behaviour_index": -1,  # index tablicy nie zachowania
-     "status": disp.Task.STATUS_LIST["TO_DO"],
-     "robot": None,
-     "start_time": "2018-06-29 07:37:27",
-     "weight": 2,
-     "priority": 2})
-
-    swap_task = disp.Task({"id": "swap_1",
-     "behaviours": [{"id": "1", "parameters": {"to": "4", "name": disp.Behaviour.TYPES["goto"]}},
-                    {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
-                    {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
-                    {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}}
-                    ],
-     "current_behaviour_index": -1,  # index tablicy nie zachowania
-     "status": disp.Task.STATUS_LIST["TO_DO"],
-     "robot": None,
-     "start_time": "2018-06-29 07:37:27",
-     "weight": 2,
-     "priority": 2})
-
-    robot = disp.Robot({"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "0"})
-
-    result = graph.select_next_task(task, swap_task, robot)
-    assert result.id == swap_task.id
-
-
-@pytest.mark.planing_graph
-def test_select_next_task_critical_battery_lvl():
-    graph = disp.PlanningGraph(graph_in)
-    node_id = 19
     task = disp.Task({"id": "1",
                       "behaviours": [{"id": "1", "parameters": {"to": "7", "name": disp.Behaviour.TYPES["goto"]}},
                                      {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
@@ -597,7 +561,45 @@ def test_select_next_task_critical_battery_lvl():
                       "weight": 2,
                       "priority": 2})
 
-    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ("%Y-%m-%d %H:%M:%S"))
+    swap_task = disp.Task({"id": "swap_1",
+                           "behaviours": [{"id": "1", "parameters": {"to": "4", "name": disp.Behaviour.TYPES["goto"]}},
+                                          {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                                          {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                          {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}}
+                                          ],
+                           "current_behaviour_index": -1,  # index tablicy nie zachowania
+                           "status": disp.Task.STATUS_LIST["TO_DO"],
+                           "robot": None,
+                           "start_time": "2018-06-29 07:37:27",
+                           "weight": 2,
+                           "priority": 2})
+
+    robot = disp.Robot({"id": "1", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0,
+                        "poiId": "0"})
+
+    result = graph.select_next_task(task, swap_task, robot)
+    assert result.id == swap_task.id
+
+
+@pytest.mark.planing_graph
+def test_select_next_task_critical_battery_lvl():
+    graph = disp.PlanningGraph(graph_in)
+    task = disp.Task({"id": "1",
+                      "behaviours": [{"id": "1", "parameters": {"to": "7", "name": disp.Behaviour.TYPES["goto"]}},
+                                     {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                                     {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                     {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
+                                     {"id": "5", "parameters": {"to": "6", "name": disp.Behaviour.TYPES["goto"]}},
+                                     {"id": "6", "parameters": {"name": disp.Behaviour.TYPES["wait"]}}
+                                     ],
+                      "current_behaviour_index": -1,  # index tablicy nie zachowania
+                      "status": disp.Task.STATUS_LIST["TO_DO"],
+                      "robot": None,
+                      "start_time": "2018-06-29 07:37:27",
+                      "weight": 2,
+                      "priority": 2})
+
+    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
     swap_time = (now + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
     swap_task = disp.Task({"id": "swap_1",
                            "behaviours": [{"id": "1", "parameters": {"to": "4", "name": disp.Behaviour.TYPES["goto"]}},
@@ -623,10 +625,10 @@ def test_select_next_task_critical_battery_lvl():
     result = graph.select_next_task(task, swap_task, robot)
     assert result.id == swap_task.id
 
+
 @pytest.mark.planing_graph
 def test_select_next_task_assign():
     graph = disp.PlanningGraph(graph_in)
-    node_id = 19
     task = disp.Task({"id": "1",
                       "behaviours": [{"id": "1", "parameters": {"to": "7", "name": disp.Behaviour.TYPES["goto"]}},
                                      {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
@@ -642,7 +644,7 @@ def test_select_next_task_assign():
                       "weight": 2,
                       "priority": 2})
 
-    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ("%Y-%m-%d %H:%M:%S"))
+    now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
     swap_time = (now + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
     swap_task = disp.Task({"id": "swap_1",
                            "behaviours": [{"id": "1", "parameters": {"to": "4", "name": disp.Behaviour.TYPES["goto"]}},

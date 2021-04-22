@@ -362,8 +362,8 @@ graph_nodes = [
                                   'orientation': {'w': 1.0, 'y': 0.0, 'x': 0.0, 'z': 0.0}}, 'color': 'magenta',
           'poiId': '0', 'pos': (8.9, -7.0), 'sourceNode': '16'}),
     (90, {'nodeType': 6, 'pose': {'position': {'y': -7.0, 'x': 8.9, 'z': 0},
-                                   'orientation': {'w': 6.123233995736766e-17, 'y': 0.0, 'x': 0.0, 'z': 1.0}},
-           'color': 'black', 'poiId': '0', 'pos': (8.9, -7.0), 'sourceNode': '16'})]
+                                  'orientation': {'w': 6.123233995736766e-17, 'y': 0.0, 'x': 0.0, 'z': 1.0}},
+          'color': 'black', 'poiId': '0', 'pos': (8.9, -7.0), 'sourceNode': '16'})]
 graph_edges = [
     (1, 2, {'sourceEdges': [0], 'id': 1, 'edgeGroupId': 3, 'behaviour': '2', 'robots': [], 'weight': 20,
             'sourceNodes': ['12']}),

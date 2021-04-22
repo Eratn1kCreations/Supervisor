@@ -75,7 +75,7 @@ def test_swap_stations_1():
 
 @pytest.mark.swap_manager
 def test_swap_stations_multiple():
-    pois_raw = [
+    pois_raw_data = [
         {"id": "1", "pose": None, "type": gc.base_node_type["queue"]},
         {"id": "2", "pose": None, "type": gc.base_node_type["charger"]},
         {"id": "3", "pose": None, "type": gc.base_node_type["unload"]},
@@ -97,9 +97,9 @@ def test_swap_stations_multiple():
         {"id": "10", "edge": (41, 19), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {data["id"]: Robot(data) for data in robots_raw}
-    manager = swap.BatterySwapManager(robots, pois_raw)
+    manager = swap.BatterySwapManager(robots, pois_raw_data)
 
-    swap_stations = [poi["id"] for poi in pois_raw if poi["type"] == gc.base_node_type["charger"]]
+    swap_stations = [poi["id"] for poi in pois_raw_data if poi["type"] == gc.base_node_type["charger"]]
     assert len(swap_stations) == len(manager.swap_stations)
     for i in swap_stations:
         assert i in manager.swap_stations

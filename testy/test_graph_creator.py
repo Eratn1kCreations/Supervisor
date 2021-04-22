@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import pytest
-from test_data import *
 import graph_creator as gc
 import math
 
@@ -110,10 +109,10 @@ def check_graph_position(expected_pose, graph_nodes):
 
     distance = 0
     for key in expected_pose.keys():
-        A = key
+        a = key
         for node_id in assigned_nodes[key]:
-            B = graph_nodes[node_id]["pos"]
-            distance += math.sqrt(math.pow(A[0] - B[0], 2) + math.pow(A[1] - B[1], 2))
+            b = graph_nodes[node_id]["pos"]
+            distance += math.sqrt(math.pow(a[0] - b[0], 2) + math.pow(a[1] - b[1], 2))
     return distance <= expected_error_position
 
 
@@ -1131,10 +1130,10 @@ def test_graph_30():
         "3": {'startNode': "3", 'endNode': "4", 'type': gc.way_type["narrowTwoWay"], 'isActive': True}
     }
 
-    pois_raw = [
+    pois_raw_data = [
         {"id": "3", "pose": (9, 5), "type": gc.base_node_type["load-unload-dock"]}
     ]
-    graph = gc.SupervisorGraphCreator(nodes, edges, pois_raw)
+    graph = gc.SupervisorGraphCreator(nodes, edges, pois_raw_data)
     # graph.print_graph()
     expected_pose = {
         (1 + gc.WAITING_STOP_DIST_TO_INTERSECTION, 5 + gc.MAIN_CORRIDOR_WIDTH / 2): 1,
@@ -3281,7 +3280,7 @@ def test_graph_exception_63():
         assert True
     else:
         assert False
-    # GraphError: Too much nodes connected with witing-departure node.
+    # GraphError: Too much nodes connected with waiting-departure node.
 
 
 @pytest.mark.graph_creator_exception
@@ -3405,7 +3404,7 @@ def test_graph_exception_68():
         assert True
     else:
         assert False
-    # GraphError: Too much nodes connected with witing-departure node.
+    # GraphError: Too much nodes connected with waiting-departure node.
 
 
 @pytest.mark.graph_creator_exception

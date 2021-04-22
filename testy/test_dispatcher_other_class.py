@@ -24,7 +24,7 @@ def test_does_not_raise_on_valid_input():
         disp.Behaviour(behaviour_dock).validate_data(behaviour_dock)
         disp.Behaviour(behaviour_wait).validate_data(behaviour_wait)
         disp.Behaviour(behaviour_undock).validate_data(behaviour_undock)
-    except DispatcherError:
+    except disp.DispatcherError:
         assert False
     else:
         assert True
@@ -2909,7 +2909,7 @@ def test_robot_validate_input_throws_exceptions_wrong_data_type():
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_id_param():
-    robot = {"edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0}
+    robot = {"edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0}
     try:
         disp.Robot(robot)
     except disp.WrongRobotInputData as error:
@@ -2933,7 +2933,7 @@ def test_robot_validate_input_throws_exceptions_missing_edge_param():
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_planning_on_param():
-    robot = {"id": "4", "edge": ("1", "2"), "isFree": True, "timeRemaining": 0}
+    robot = {"id": "4", "edge": (1, 2), "isFree": True, "timeRemaining": 0}
     try:
         disp.Robot(robot)
     except disp.WrongRobotInputData as error:
@@ -2945,7 +2945,7 @@ def test_robot_validate_input_throws_exceptions_missing_planning_on_param():
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_is_free_param():
-    robot = {"id": "4", "edge": ("1", "2"), "planningOn": True, "timeRemaining": 0}
+    robot = {"id": "4", "edge": (1, 2), "planningOn": True, "timeRemaining": 0}
     try:
         disp.Robot(robot)
     except disp.WrongRobotInputData as error:
@@ -2957,7 +2957,7 @@ def test_robot_validate_input_throws_exceptions_missing_is_free_param():
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_missing_time_remaining_param():
-    robot = {"id": "4", "edge": ("1", "2"), "planningOn": True, "isFree": True}
+    robot = {"id": "4", "edge": (1, 2), "planningOn": True, "isFree": True}
     try:
         disp.Robot(robot)
     except disp.WrongRobotInputData as error:
@@ -2969,7 +2969,7 @@ def test_robot_validate_input_throws_exceptions_missing_time_remaining_param():
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_id_type():
-    robot = {"id": 6, "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0}
+    robot = {"id": 6, "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0}
     type_id = type(robot["id"])
     try:
         disp.Robot(robot)
@@ -2979,7 +2979,7 @@ def test_robot_validate_input_throws_exceptions_wrong_id_type():
     else:
         assert False
 
-    robot = {"id": None, "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0}
+    robot = {"id": None, "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0}
     type_id = type(robot["id"])
     try:
         disp.Robot(robot)
@@ -3017,7 +3017,7 @@ def test_robot_validate_input_throws_exceptions_wrong_edge_type():
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_planning_on_type():
-    robot = {"id": "6", "edge": ("1", "2"), "planningOn": 6, "isFree": True, "timeRemaining": 0}
+    robot = {"id": "6", "edge": (1, 2), "planningOn": 6, "isFree": True, "timeRemaining": 0}
     type_planning = type(robot["planningOn"])
     try:
         disp.Robot(robot)
@@ -3027,7 +3027,7 @@ def test_robot_validate_input_throws_exceptions_wrong_planning_on_type():
     else:
         assert False
 
-    robot = {"id": "6", "edge": ("1", "2"), "planningOn": None, "isFree": True, "timeRemaining": 0}
+    robot = {"id": "6", "edge": (1, 2), "planningOn": None, "isFree": True, "timeRemaining": 0}
     type_planning = type(robot["planningOn"])
     try:
         disp.Robot(robot)
@@ -3041,7 +3041,7 @@ def test_robot_validate_input_throws_exceptions_wrong_planning_on_type():
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_is_free_type():
-    robot = {"id": "6", "edge": ("1", "2"), "planningOn": True, "isFree": "True", "timeRemaining": 0}
+    robot = {"id": "6", "edge": (1, 2), "planningOn": True, "isFree": "True", "timeRemaining": 0}
     type_is_free = type(robot["isFree"])
     try:
         disp.Robot(robot)
@@ -3051,7 +3051,7 @@ def test_robot_validate_input_throws_exceptions_wrong_is_free_type():
     else:
         assert False
 
-    robot = {"id": "6", "edge": ("1", "2"), "planningOn": True, "isFree": None, "timeRemaining": 0}
+    robot = {"id": "6", "edge": (1, 2), "planningOn": True, "isFree": None, "timeRemaining": 0}
     type_is_free = type(robot["isFree"])
     try:
         disp.Robot(robot)
@@ -3065,7 +3065,7 @@ def test_robot_validate_input_throws_exceptions_wrong_is_free_type():
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_time_remaining_type():
-    robot = {"id": "6", "edge": ("1", "4"), "planningOn": True, "isFree": True, "timeRemaining": "0"}
+    robot = {"id": "6", "edge": (1, 4), "planningOn": True, "isFree": True, "timeRemaining": "0"}
     type_time = type(robot["timeRemaining"])
     try:
         disp.Robot(robot)
@@ -3075,7 +3075,7 @@ def test_robot_validate_input_throws_exceptions_wrong_time_remaining_type():
     else:
         assert False
 
-    robot = {"id": "6", "edge": ("1", "4"), "planningOn": True, "isFree": True, "timeRemaining": None}
+    robot = {"id": "6", "edge": (1, 4), "planningOn": True, "isFree": True, "timeRemaining": None}
     type_time = type(robot["timeRemaining"])
     try:
         disp.Robot(robot)
@@ -3088,7 +3088,7 @@ def test_robot_validate_input_throws_exceptions_wrong_time_remaining_type():
 
 @pytest.mark.robot_input_data
 def test_robot_validate_input_valid_data():
-    robot = {"id": "1", "edge": ("1", "4"), "planningOn": True, "isFree": True, "timeRemaining": 9, "poiId": "1"}
+    robot = {"id": "1", "edge": (1, 4), "planningOn": True, "isFree": True, "timeRemaining": 9, "poiId": "1"}
     try:
         disp.Robot(robot)
     except disp.WrongRobotInputData as error:
@@ -3113,7 +3113,7 @@ def test_robot_get_current_destination_goal():
             "weight": 2,
             "priority": 2
             }
-    robot = {"id": "1", "edge": ("1", "4"), "planningOn": True, "isFree": True, "timeRemaining": 9, "poiId": 1}
+    robot = {"id": "1", "edge": (1, 4), "planningOn": True, "isFree": True, "timeRemaining": 9, "poiId": 1}
 
     new_robot = disp.Robot(robot)
     # robot nie ma przypisanego zadania
@@ -3147,7 +3147,7 @@ def test_robot_get_current_destination_goal():
 
 @pytest.mark.robot_input_data
 def test_robot_get_current_node():
-    robot = {"id": "1", "edge": ("1", "4"), "planningOn": True, "isFree": True, "timeRemaining": 9, "poiId": "1"}
+    robot = {"id": "1", "edge": (1, 4), "planningOn": True, "isFree": True, "timeRemaining": 9, "poiId": "1"}
     new_robot = disp.Robot(robot)
     assert robot["edge"][1] == new_robot.get_current_node()
 
@@ -3160,16 +3160,16 @@ def test_robot_get_current_node():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_robots_only_planning_on():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": False, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": False, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     assert len(plan_manager.robots) == 3  # w trybie planowania tylko 3
@@ -3189,16 +3189,16 @@ def test_plan_manager_set_robots_check_if_edge_is_set():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_get_robot_by_id():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     assert plan_manager.get_robot_by_id("3").get_info() == disp.Robot(robots_raw[2]).get_info()
@@ -3207,16 +3207,16 @@ def test_plan_manager_get_robot_by_id():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_get_robot_by_id_robot_no_exist():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     assert plan_manager.get_robot_by_id("7") is None
@@ -3225,10 +3225,10 @@ def test_plan_manager_get_robot_by_id_robot_no_exist():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_tasks_ok_data():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3257,10 +3257,10 @@ def test_plan_manager_set_tasks_ok_data():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_tasks_ok_data():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3276,9 +3276,9 @@ def test_plan_manager_set_tasks_ok_data():
             "priority": 5
             }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task("2", disp.Task(task))
@@ -3290,10 +3290,10 @@ def test_plan_manager_set_tasks_ok_data():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_tasks_throws_error_when_dispatcher_assigned_tasks_set_to_different_robot():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task_data = {"id": "1",
@@ -3309,9 +3309,9 @@ def test_plan_manager_set_tasks_throws_error_when_dispatcher_assigned_tasks_set_
                  "priority": 5
                  }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     task = disp.Task(task_data)
@@ -3328,10 +3328,10 @@ def test_plan_manager_set_tasks_throws_error_when_dispatcher_assigned_tasks_set_
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_tasks_set_root_id_in_task():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3347,9 +3347,9 @@ def test_plan_manager_set_tasks_set_root_id_in_task():
             "priority": 5
             }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "2"
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
@@ -3361,10 +3361,10 @@ def test_plan_manager_set_tasks_set_root_id_in_task():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_tasks_invalid_robot_id():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3380,9 +3380,9 @@ def test_plan_manager_set_tasks_invalid_robot_id():
             "priority": 5
             }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "7"
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
@@ -3397,16 +3397,16 @@ def test_plan_manager_set_tasks_invalid_robot_id():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_check_if_robot_exist():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     assert plan_manager.check_if_robot_id_exist("1")
@@ -3416,10 +3416,10 @@ def test_plan_manager_check_if_robot_exist():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_next_edge():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3435,12 +3435,12 @@ def test_plan_manager_set_next_edge():
             "priority": 5
             }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "2"
-    set_edge = ("3", "4")
+    set_edge = (3, 4)
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task(robot_id, disp.Task(task))
     plan_manager.set_next_edge(robot_id, set_edge)
@@ -3450,10 +3450,10 @@ def test_plan_manager_set_next_edge():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_next_edge_invalid_robot_id():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3469,12 +3469,12 @@ def test_plan_manager_set_next_edge_invalid_robot_id():
             "priority": 5
             }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "2"
-    set_edge = ("3", "4")
+    set_edge = (3, 4)
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task(robot_id, disp.Task(task))
     try:
@@ -3488,19 +3488,19 @@ def test_plan_manager_set_next_edge_invalid_robot_id():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_next_edge_throws_except_when_robot_get_next_edge_but_dosent_have_task():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "2"
-    set_edge = ("3", "4")
+    set_edge = (3, 4)
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     try:
         plan_manager.set_next_edge(robot_id, set_edge)
@@ -3513,10 +3513,10 @@ def test_plan_manager_set_next_edge_throws_except_when_robot_get_next_edge_but_d
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_end_beh_edge():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3532,12 +3532,12 @@ def test_plan_manager_set_end_beh_edge():
             "priority": 2
             }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "2"
-    set_edge = ("3", "4")
+    set_edge = (3, 4)
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task(robot_id, disp.Task(task))
     plan_manager.set_next_edge(robot_id, set_edge)
@@ -3548,10 +3548,10 @@ def test_plan_manager_set_end_beh_edge():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_end_beh_edge_invalid_robot_id():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3567,9 +3567,9 @@ def test_plan_manager_set_end_beh_edge_invalid_robot_id():
             "priority": 5
             }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "2"
     set_end_beh_edge = False
@@ -3586,16 +3586,16 @@ def test_plan_manager_set_end_beh_edge_invalid_robot_id():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_end_beh_edge_throws_except_when_robot_get_next_edge_but_dosent_have_task():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "2"
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
@@ -3610,10 +3610,10 @@ def test_plan_manager_set_end_beh_edge_throws_except_when_robot_get_next_edge_bu
 @pytest.mark.robots_plan_manager
 def test_plan_manager_set_end_beh_edge_throws_except_when_robot_get_next_edge_but_dosent_have_task():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task = {"id": "1",
@@ -3629,9 +3629,9 @@ def test_plan_manager_set_end_beh_edge_throws_except_when_robot_get_next_edge_bu
             "priority": 5
             }
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     robot_id = "2"
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
@@ -3649,17 +3649,17 @@ def test_plan_manager_set_end_beh_edge_throws_except_when_robot_get_next_edge_bu
 def test_plan_manager_get_free_robots():
     # zestaw 1
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": False, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": False, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     free_input_robots = ["1", "3", "4"]
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     free_robots = plan_manager.get_free_robots()
@@ -3669,17 +3669,17 @@ def test_plan_manager_get_free_robots():
 
     # zestaw 2
     robots_raw = [
-        {"id": "1", "edge": ("67", '68'), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", '86'), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     free_input_robots = ["1", "2", "3", "4"]
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     free_robots = plan_manager.get_free_robots()
@@ -3689,10 +3689,10 @@ def test_plan_manager_get_free_robots():
 
     # zestaw 3
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task1 = disp.Task({"id": "1",
@@ -3721,9 +3721,9 @@ def test_plan_manager_get_free_robots():
                        })
     free_input_robots = ["1", "3"]
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task("4", task1)
@@ -3737,10 +3737,10 @@ def test_plan_manager_get_free_robots():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_get_busy_robots():
     robots_raw = [
-        {"id": "1", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("89", "90"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("85", "86"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     task1 = disp.Task({"id": "1",
@@ -3769,9 +3769,9 @@ def test_plan_manager_get_busy_robots():
                        })
     busy_robots = ["2", "4"]
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task("4", task1)
@@ -3783,28 +3783,28 @@ def test_plan_manager_get_busy_robots():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_get_robots_id_on_given_edges():
     robots_raw = [
-        {"id": "1", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("3", "4"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("8", "9"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "5", "edge": ("8", "9"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "6", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "7", "edge": ("5", "6"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "8", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "9", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "10", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "11", "edge": ("15", "16"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "12", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "13", "edge": ("13", "14"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (3, 4), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "5", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "6", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "7", "edge": (5, 6), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "8", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "9", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "10", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "11", "edge": (15, 16), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "12", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "13", "edge": (13, 14), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
-    given_edges = [("8", "9"), ("3", "4"), ("33", "34")]
+    given_edges = [(8, 9), (3, 4), (33, 34)]
     robots_id = [robot["id"] for robot in robots_raw if robot["edge"] in given_edges]
     given_robots = plan_manager.get_robots_id_on_given_edges(given_edges)
     assert len(robots_id) == len(given_robots)
@@ -3815,22 +3815,22 @@ def test_plan_manager_get_robots_id_on_given_edges():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_get_robots_id_on_future_edges():
     robots_raw = [
-        {"id": "1", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("3", "4"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("8", "9"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "5", "edge": ("8", "9"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "6", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "7", "edge": ("5", "6"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "8", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "9", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "10", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "11", "edge": ("15", "16"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "12", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "13", "edge": ("13", "14"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (3, 4), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "5", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "6", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "7", "edge": (5, 6), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "8", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "9", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "10", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "11", "edge": (15, 16), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "12", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "13", "edge": (13, 14), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
-    edges = [("8", "9"), ("3", "4"), ("15", "16"), ("33", "34")]
+    edges = [(8, 9), (3, 4), (15, 16), (33, 34)]
     next_edges = []
     for a in range(len(robots_raw)):
         next_edges.append(edges[random.randint(0, 3)])
@@ -3852,15 +3852,15 @@ def test_plan_manager_get_robots_id_on_future_edges():
                                 }))
 
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     for i, robot in enumerate(robots_raw):
         plan_manager.set_task(robot["id"], tasks[i])
         plan_manager.set_next_edge(robot["id"], next_edges[i])
-    given_edges = [("3", "4"), ("33", "34")]
+    given_edges = [(3, 4), (33, 34)]
 
     robots_id = [robot.id for robot in plan_manager.robots.values() if robot.next_task_edge in given_edges]
     given_robots = plan_manager.get_robots_id_on_future_edges(given_edges)
@@ -3872,19 +3872,19 @@ def test_plan_manager_get_robots_id_on_future_edges():
 @pytest.mark.robots_plan_manager
 def test_plan_manager_get_current_robots_goals():
     robots_raw = [
-        {"id": "1", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("3", "4"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("8", "9"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "5", "edge": ("8", "9"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "6", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "7", "edge": ("5", "6"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "8", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "9", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "10", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "11", "edge": ("15", "16"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "12", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "13", "edge": ("13", "14"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (3, 4), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "5", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "6", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "7", "edge": (5, 6), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "8", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "9", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "10", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "11", "edge": (15, 16), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "12", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "13", "edge": (13, 14), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     pois = ["4", "6", "8", "10"]
@@ -3907,9 +3907,9 @@ def test_plan_manager_get_current_robots_goals():
                                 "priority": 5}))
 
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     for i, robot in enumerate(robots_raw):
@@ -3923,19 +3923,19 @@ def test_plan_manager_get_current_robots_goals():
 
     # Niektore roboty nie maja zadan
     robots_raw = [
-        {"id": "1", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": ("3", "4"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": ("8", "9"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "5", "edge": ("8", "9"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "6", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "7", "edge": ("5", "6"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "8", "edge": ("67", "68"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "9", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "10", "edge": ("1", "2"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "11", "edge": ("15", "16"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "12", "edge": ("33", "34"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "13", "edge": ("13", "14"), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+        {"id": "1", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (3, 4), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "5", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "6", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "7", "edge": (5, 6), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "8", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "9", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "10", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "11", "edge": (15, 16), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "12", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "13", "edge": (13, 14), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
     ]
     robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
     pois = ["4", "6", "8", None]
@@ -3943,9 +3943,9 @@ def test_plan_manager_get_current_robots_goals():
     for a in range(len(robots_raw)):
         pois_id.append(pois[random.randint(0, 3)])
     base_poi_edges = {
-        "1": ("1", "2"),
-        "2": ("89", "90"),
-        "3": ("20", "30")
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     for i in range(len(robots_raw)):
