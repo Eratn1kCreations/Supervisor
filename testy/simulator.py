@@ -1,7 +1,6 @@
 import graph_creator as gc
 import networkx as nx
 import matplotlib.pyplot as plt
-import matplotlib
 import copy
 import dispatcher as disp
 import testy.simulator_gui as sim_gui
@@ -19,13 +18,23 @@ import pandas as pd
 from random import randint
 import ipywidgets
 
-SIMULATION_TIME = 5000 # w sekundach
-TIME_INACTIVE = 120 # w sekundach, czas w ktorym polozenie robotow nie zmienilo sie
-TIME_STEP_SUPERVISOR_SIM = 5 # w sekundach
-TIME_STEP_ROBOT_SIM = 1 # w sekundach
-TIME_STEP_DISPALY_UPDATE = 0 #0.05 # krok przerwy w wyswietlaniu symulacji, pozniej mozna calkowicie pominac
-                                # teraz tylko do wyswietlania i pokazania animacji
+SIMULATION_TIME = 5000  # w sekundach
+TIME_INACTIVE = 120  # w sekundach, czas w ktorym polozenie robotow nie zmienilo sie
+TIME_STEP_SUPERVISOR_SIM = 5  # w sekundach
+TIME_STEP_ROBOT_SIM = 1  # w sekundach
+TIME_STEP_DISPLAY_UPDATE = 0  # 0.05 # krok przerwy w wyswietlaniu symulacji, pozniej mozna calkowicie pominac
+                              # teraz tylko do wyswietlania i pokazania animacji
 TURN_ON_ANIMATION_UPDATE = True
+
+
+def get_poi_edge(graph, edge):
+    new_graph = PlanningGraph(graph)
+    group_id = new_graph.get_group_id(edge)
+    for edge in new_graph.get_edges_by_group(group_id):
+        poi = new_graph.get_poi(edge)
+        if poi is not None:
+            return poi
+    return None
 
 
 class RobotSim(disp.Robot):
@@ -43,10 +52,12 @@ class RobotSim(disp.Robot):
         next_task_edge ((string,string)): informuje o kolejnej krawedzi przejscia ktora nalezy wyslac do robota
         end_beh_edge (bool): informuje czy zachowanie po przejsciu krawedzia zostanie ukonczone
 
-        beh_duration (float): czas wykonywnaia zachowania
+        beh_duration (float): czas wykonywania zachowania
+        beh_allowed_time (float): dopuszczalny czas wykonywania zachowania, jeśli mniejszy niż beh_time tzn. że inny
+                                  robot wykonuje zadanie na danej krawędzi i jest przed tym robotem. Należy go
+                                  odpowiednio wcześniej zatrzymać
         beh_time (float): czas trwania zachowania
         task_id (int): id przypisanego zadania
-        end_beh (bool): czy przejscie jest koncowe, aby wykonac zachowanie skladowae zadania
     """
     def __init__(self, robot_data):
         """
@@ -65,8 +76,57 @@ class RobotSim(disp.Robot):
         self.battery = robot_data.battery
 
         self.beh_duration = 0
+        self.beh_allowed_time = 0
         self.beh_time = 0
         self.task_id = None
+
+    def run(self, step_time):
+        self.beh_duration = self.beh_duration + step_time
+        if self.beh_duration > self.beh_allowed_time:
+            self.beh_duration = self.beh_allowed_time
+        # warunek zakonczenia wykonywania zachowania
+        self.is_free = self.beh_duration >= self.beh_time
+
+        battery_usage = 0.2 * self.battery.stand_usage + 0.8 * self.battery.drive_usage
+        self.battery.capacity -= step_time / (battery_usage * 60 * 60 * step_time)
+        if self.battery.capacity < 0:
+            self.battery.capacity = 0
+
+    def set_task(self, task):
+        """
+        Args:
+            task(RobotBehaviour):
+        """
+        self.beh_duration = 0
+        self.task_id = task.task_id
+        self.beh_time = task.task_duration
+        self.is_free = False
+        self.edge = task.next_edge
+        self.end_beh_edge = task.end_beh
+        self.beh_allowed_time = task.beh_allowed_time
+
+    def update_task_allowed_time(self, task):
+        self.beh_allowed_time = task.beh_allowed_time
+
+
+class RobotBehaviour:
+    """
+    Attributes:
+        robot_id (int): id robota
+        task_id (int): id zadania
+        task_duration (float): czas trwania zachowania
+        beh_allowed_time (float): dozwolony czas zachowania jaki moze zostac wykonany na krawedzi, więcej nie można
+                                  pokonać krawędzi, bo jest zablokowana przez inne roboty
+        next_edge (int,int): krawedz grafu, ktora ma poruszac sie robot
+        end_beh (bool): informuje czy zachowanie jest koncowym zachowaniem w zadaniu czy posrednim
+    """
+    def __init__(self):
+        self.robot_id = None
+        self.task_id = None
+        self.task_duration = 0
+        self.beh_allowed_time = 0
+        self.next_edge = None
+        self.end_beh = True
 
 
 class RobotsSimulator:
@@ -94,42 +154,29 @@ class RobotsSimulator:
         Odpowiada za wykonanie kroku symulacji zgodnie ze "step_time"
         """
         for robot in self.robots:
-            robot.beh_duration = robot.beh_duration + self.step_time
-            # warunek zakonczenia wykonywania zachowania
-            robot.is_free = robot.beh_duration >= robot.beh_time
+            robot.run(self.step_time)
 
-            battery_usage = 0.2 * robot.battery.stand_usage + 0.8 * robot.battery.drive_usage
-            robot.battery.capacity -= self.step_time/(battery_usage*60*60*self.step_time)
-            if robot.battery.capacity < 0:
-                robot.battery.capacity = 0
-
-    def set_task(self, task):
-        """
-        Odpowiada za ustawienie kolejnej krawedzi przejscia dla robota.
-        Parameters:
-             task ({"robotId": int, "taskId": int, "taskDuration": int, 'nextEdge': (int, int), "endBeh": bool}):
-                    fragment zadania do wykonania
-        """
-        for robot in self.robots:
-            if robot.id == task["robotId"]:
-                self.flag_robot_state_updated = True
-                robot.task_id = task["taskId"]
-                robot.beh_time = task["taskDuration"]
-                robot.beh_duration = 0
-                robot.is_free = False
-                robot.edge = task["nextEdge"]
-                robot.end_beh_edge = task["endBeh"]
-                break
-
-    def set_tasks(self, tasks_list):
+    def set_tasks(self, new_tasks, updated_tasks):
         """
         Ustawia nowe zadania dla robotow
         Attributes:
-            tasks_list ([{"robotId": int, "taskId": int, "taskDuration": int, 'nextEdge': (int, int),
-                         "endBeh": bool},...]): lista kolejnych fragmentow zadan dla robotow
+            new_tasks ([RobotBehaviour,...]): lista kolejnych fragmentow zadan dla robotow
+            updated_tasks ([RobotBehaviour,...]): lista zaktualizowanych kolejnych fragmentow zadan dla robotow,
+                                                  zadania dalszego przejazdu po krawedzi dla pozostałych robotów, gdy
+                                                  pierwszy opuścił krawędź
         """
-        for task in tasks_list:
-            self.set_task(task)
+        for task in new_tasks:
+            for robot in self.robots:
+                if robot.id == task.robot_id:
+                    self.flag_robot_state_updated = True
+                    robot.set_task(task)
+                    break
+
+        for task in updated_tasks:
+            for robot in self.robots:
+                if robot.id == task.robot_id:
+                    robot.update_task_allowed_time(task)
+                    break
 
     def print_robot_status(self):
         """
@@ -197,47 +244,41 @@ class Supervisor:
         self.flag_task_state_updated = True
         self.add_tasks(tasks)
         self.plan = {}
-        self.update_robots_on_edge(robots_state_list)
+        self.init_robots_on_edge(robots_state_list)
         self.next_step_set = {robot.id: False for robot in robots_state_list}
-
-    def update_data(self, robots_state_list):
-        self.update_robots_on_edge(robots_state_list)
-        self.update_tasks_states(robots_state_list)
 
     def update_plan(self, robots_state_list):
         robots = self.convert_robots_state_to_dispatcher_format(robots_state_list)
         dispatcher = disp.Dispatcher(self.graph, robots)
+        init_time = time.time()
         self.plan = dispatcher.get_plan_all_free_robots(self.graph, robots, self.tasks)
+        end_time = time.time()
 
         for robot_id in self.plan.keys():
             self.next_step_set[robot_id] = True
+            next_edge = self.plan[robot_id]["nextEdge"]
+            if next_edge is not None:
+                self.update_robots_on_edge(robot_id, next_edge)
 
-    def run(self, robots_state_list):
-        """
-        Parameters:
-            robots_state_list (list(RobotSim)): stan robotow wychodzacy z symulatora
-        """
-        self.update_data(robots_state_list)
-        self.update_plan(robots_state_list)
-        self.start_tasks()
+        return end_time - init_time, len(robots), len(self.tasks)
 
     def print_graph(self, plot_size=(45, 45)):
         """
         Odpowiada za wyswietlenie grafu z liczba aktualnie znajdujacych sie na krawedzi robotow.
         """
-        graphData = self.graph.graph
+        graph_data = self.graph.graph
         plt.figure(figsize=plot_size)
-        node_pos = nx.get_node_attributes(graphData, "pos")
+        node_pos = nx.get_node_attributes(graph_data, "pos")
 
-        robots_on_edges_id = nx.get_edge_attributes(graphData, "robots")
+        robots_on_edges_id = nx.get_edge_attributes(graph_data, "robots")
         robots_on_edges = {}
         for edge in robots_on_edges_id:
             robots_on_edges[edge] = len(robots_on_edges_id[edge])
-        node_col = [graphData.nodes[i]["color"] for i in graphData.nodes()]
+        node_col = [graph_data.nodes[i]["color"] for i in graph_data.nodes()]
 
-        nx.draw_networkx(graphData, node_pos, node_color=node_col, node_size=3000, font_size=25,
+        nx.draw_networkx(graph_data, node_pos, node_color=node_col, node_size=3000, font_size=25,
                          with_labels=True, font_color="w", width=4)
-        nx.draw_networkx_edge_labels(graphData, node_pos, node_color=node_col,
+        nx.draw_networkx_edge_labels(graph_data, node_pos, node_color=node_col,
                                      edge_labels=robots_on_edges, font_size=30)
         plt.show()
         plt.close()
@@ -246,16 +287,16 @@ class Supervisor:
         """
         Odpowiada za wyswietlenie grafu z wagami na krawedziach
         """
-        graphData = self.graph.get_graph()
+        graph_data = self.graph.get_graph()
         plt.figure(figsize=plot_size)
-        node_pos = nx.get_node_attributes(graphData, "pos")
+        node_pos = nx.get_node_attributes(graph_data, "pos")
 
-        weights = nx.get_edge_attributes(graphData, "weight")
-        node_col = [graphData.nodes[i]["color"] for i in graphData.nodes()]
+        weights = nx.get_edge_attributes(graph_data, "weight")
+        node_col = [graph_data.nodes[i]["color"] for i in graph_data.nodes()]
 
-        nx.draw_networkx(graphData, node_pos, node_color=node_col, node_size=3000, font_size=25,
+        nx.draw_networkx(graph_data, node_pos, node_color=node_col, node_size=3000, font_size=25,
                          with_labels=True, font_color="w", width=4)
-        nx.draw_networkx_edge_labels(graphData, node_pos, node_color=node_col,
+        nx.draw_networkx_edge_labels(graph_data, node_pos, node_color=node_col,
                                      edge_labels=weights, font_size=30)
         plt.show()
         plt.close()
@@ -263,7 +304,7 @@ class Supervisor:
     def add_task(self, task):
         """
         Parameters:
-            task_raw_data (disp.Task): surowe dane o zadaniu
+            task (disp.Task): surowe dane o zadaniu
         """
         self.tasks.append(task)
         self.tasks_count += 1
@@ -272,7 +313,7 @@ class Supervisor:
     def add_tasks(self, tasks):
         """
         Parameters:
-            tasks_raw_data (list(disp.task)): dane o zadaniach
+            tasks (list(disp.task)): dane o zadaniach
         """
         for task in tasks:
             self.add_task(task)
@@ -284,7 +325,7 @@ class Supervisor:
                 given_task = task
         return given_task
 
-    def update_tasks_states(self, robots_state_list):
+    def update_data(self, robots_state_list):
         """
         Aktualizacja stanu zadan na podstawie danych otrzymanych z symulatora robotow, kończy aktualnie wykonywane
         zachowanie lub zadanie
@@ -335,20 +376,37 @@ class Supervisor:
     def get_robots_command(self):
         """
         Zwraca liste komend przekazywanych do symulatora robotow.
-        tasksList ([{'robotId': int, 'nextEdge': (int, int), 'taskId': int, 'endBeh': bool, "taskDuration": int},...])
+        new_tasks ([RobotBehaviour,...]): lista z nowymi zadaniami do przekazania do symulatora robotow
+        updated_tasks ([RobotBehaviour,...]): lista z aktualnym stanem na krawędzi jaki może osiągnąć robot
         """
-        tasksList = []
+        new_tasks = []
+        robots_with_tasks = []
         for i in self.plan.keys():
-            robotPlan = copy.deepcopy(self.plan[i])
-            robot_command = {"robotId": i, "nextEdge": robotPlan["nextEdge"],
-                             "taskId": robotPlan["taskId"], "endBeh": robotPlan["endBeh"],
-                             "taskDuration": self.graph.graph.edges[robotPlan["nextEdge"]]["weight"]}
-            # robotCommand["taskDuration"] = 1
-            tasksList.append(robot_command)
-        return tasksList
+            robot_plan = copy.deepcopy(self.plan[i])
+            robot_behaviour = RobotBehaviour()
+            robot_behaviour.robot_id = i
+            robot_behaviour.task_id = robot_plan["taskId"]
+            robot_behaviour.task_duration = self.graph.graph.edges[robot_plan["nextEdge"]]["weight"]
+            robot_behaviour.beh_allowed_time = self.get_allowed_time(i, robot_plan["nextEdge"])
+            robot_behaviour.next_edge = robot_plan["nextEdge"]
+            robot_behaviour.end_beh = robot_plan["endBeh"]
+            new_tasks.append(robot_behaviour)
+            robots_with_tasks.append(i)
 
-    def update_robots_on_edge(self, robots_state_list):
+        updated_tasks = []
+        for edge in self.graph.graph.edges(data=True):
+            for robot_id in edge[2]["robots"]:
+                if robot_id not in robots_with_tasks:
+                    robot_behaviour = RobotBehaviour()
+                    robot_behaviour.robot_id = robot_id
+                    robot_behaviour.beh_allowed_time = self.get_allowed_time(robot_id, (edge[0], edge[1]))
+                    updated_tasks.append(robot_behaviour)
+                    robots_with_tasks.append(robot_id)
+        return new_tasks, updated_tasks
+
+    def init_robots_on_edge(self, robots_state_list):
         """
+        Na podstawie przypisanych POI do robotów inicjalizuje stan grafu z położeniem robotów na krawędziach
         Parameters:
             robots_state_list (list(RobotSim)): stan robotow wychodzacy z symulatora
         """
@@ -359,6 +417,25 @@ class Supervisor:
         for edge in self.graph.graph.edges:
             robots_on_edge = [robot.id for robot in robots_state_list if robot.edge == edge]
             self.graph.graph.edges[edge[0], edge[1]]["robots"] = robots_on_edge
+
+    def update_robots_on_edge(self, robot_id, new_edge):
+        # usunięcie id robota z grafu
+        for edge in self.graph.graph.edges(data=True):
+            if robot_id in self.graph.graph.edges[edge[0], edge[1]]["robots"]:
+                self.graph.graph.edges[edge[0], edge[1]]["robots"].remove(robot_id)
+                break
+
+        # przypisanie id robota do nowej krawędzi grafu
+        self.graph.graph.edges[new_edge[0], new_edge[1]]["robots"].append(robot_id)
+
+    def get_allowed_time(self, robot_id, edge):
+        i = self.graph.graph.edges[edge]["robots"].index(robot_id)
+        max_time = self.graph.graph.edges[edge]["weight"]
+        if "maxRobots" in self.graph.graph.edges[edge]:
+            max_robots = self.graph.graph.edges[edge]["maxRobots"]
+        else:
+            max_robots = 1
+        return ((max_robots - i) / max_robots) * max_time
 
     def print_data(self):
         print("\n---------------------------Stan zadan---------------------------")
@@ -384,10 +461,10 @@ class Supervisor:
         print("\n---------------------------Nowy plan---------------------------")
         print("{:<9} {:<8} {:<12} {:<7} {:<5}".format('robotId', 'taskId', 'next edge', 'endBeh', 'taskDuration'))
 
-        for plan in self.get_robots_command():
-            print("{:<12} {:<6} {:<12} {:<10} {:<7}".format(str(plan['robotId']), str(plan["taskId"]),
-                                                            str(plan["nextEdge"]),
-                                                            str(plan["endBeh"]), str(plan["taskDuration"])))
+        for plan in self.get_robots_command()[0]:
+            print("{:<12} {:<6} {:<12} {:<10} {:<7}".format(str(plan.robot_id), str(plan.task_id),
+                                                            str(plan.next_edge),
+                                                            str(plan.end_beh), str(plan.task_duration)))
 
     def convert_robots_state_to_dispatcher_format(self, robots_state_list):
         """
@@ -400,30 +477,31 @@ class Supervisor:
         robots_dict = {}
         for robot in robots_state_list:
             robots_dict[robot.id] = disp.Robot({"id": robot.id, "edge": robot.edge, "planningOn": robot.planning_on,
-                                              "isFree": robot.is_free, "timeRemaining":  robot.time_remaining,
-                                              "poiId": robot.poi_id})
+                                                "isFree": robot.is_free, "timeRemaining":  robot.time_remaining,
+                                                "poiId": robot.poi_id})
 
         return robots_dict
 
 
 class Simulator:
-    def __init__(self, pois_raw):
-        self.gui = sim_gui.TestGuiPanel(pois_raw)
+    def __init__(self, pois_data):
+        self.gui = sim_gui.TestGuiPanel(pois_data)
         self.start_inactive_sup_time = 0
+        self.log_data = DataLogger()
+        self.robots_sim = None
+        self.supervisor = None
 
     def config(self, graph):
         tasks = self.gui.task_panel.tasks
         self.robots_sim = RobotsSimulator(self.gui.robots_creator.robots, TIME_STEP_ROBOT_SIM)
         self.supervisor = Supervisor(graph, tasks, self.robots_sim.robots)
-        self.log_data = DataLogger()
         self.log_data.save_graph(graph.graph)
         self.gui.export_log_config(self.log_data.file_path)
 
     def run(self):
         i = 0
-        self.supervisor.update_data(self.robots_sim.robots)
         while True:
-            time.sleep(TIME_STEP_DISPALY_UPDATE)  # czas odswiezania kroku
+            time.sleep(TIME_STEP_DISPLAY_UPDATE)  # czas odswiezania kroku
             if i % TIME_STEP_SUPERVISOR_SIM == 0:
                 self.update_supervisor(i)
 
@@ -438,7 +516,7 @@ class Simulator:
                 self.log_data.save_battery_state(i, self.robots_sim.robots)
 
             if i > SIMULATION_TIME:
-                # przekrocozno czas symulacji
+                # przekroczono czas symulacji
                 print("przekroczono czas symulacji")
                 break
             elif len(self.supervisor.tasks) == 0:
@@ -454,10 +532,15 @@ class Simulator:
 
     def update_supervisor(self, sim_time):
         robots_state_list = self.robots_sim.robots  # aktualny stan robotow po inicjalizacji
-        self.supervisor.run(robots_state_list)
-        self.robots_sim.set_tasks(self.supervisor.get_robots_command())
-        self.supervisor.update_robots_on_edge(self.robots_sim.robots)
 
+        self.supervisor.update_data(robots_state_list)
+        dispatcher_info_data = self.supervisor.update_plan(robots_state_list)
+        self.log_data.save_dispatcher(sim_time, dispatcher_info_data)
+        self.supervisor.start_tasks()
+
+        new_tasks, updated_tasks = self.supervisor.get_robots_command()
+        self.robots_sim.set_tasks(new_tasks, updated_tasks)
+        self.supervisor.init_robots_on_edge(self.robots_sim.robots)
 
         is_valid = self.is_valid_graph(sim_time)
         # Zmiana stanu robota, przypisanie go do nowej krawedzi
@@ -517,13 +600,13 @@ class DataLogger:
     """
     Attributes:
         tasks_start_time (dict): slownik z kluczem bedacym id zadania, a wartoscia {"sim_time": float, "task":disp.Task}
-        behaviours (dict): slownik z kluczem bedacym id zadaniaa,a  wartoscia {"sim_time": float, "task":disp.Task}
+        behaviours (dict): slownik z kluczem bedacym id zadania, a  wartoscia {"sim_time": float, "task":disp.Task}
     """
     def __init__(self):
-        currentDT = datetime.datetime.now()
-        folderName = str(currentDT.month) + "-" + str(currentDT.day) + "_" + str(currentDT.hour) + "-" + str(
-            currentDT.minute) + "-" + str(currentDT.second)
-        self.file_path = os.path.expanduser("~") + "/SMART_logs/dispatcher/" + folderName + "/"
+        current_dt = datetime.datetime.now()
+        folder_name = str(current_dt.month) + "-" + str(current_dt.day) + "_" + str(current_dt.hour) + "-" + str(
+            current_dt.minute) + "-" + str(current_dt.second)
+        self.file_path = os.path.expanduser("~") + "/SMART_logs/dispatcher/" + folder_name + "/"
         self.tasks_start_time = {}
         self.behaviours = {}
         self.init_logs_storage()
@@ -595,6 +678,12 @@ class DataLogger:
         if not os.path.exists(self.file_path):
             os.makedirs(self.file_path)
 
+        # ustawienie naglowkow w logu od dispatchera
+        with open(self.file_path + "dispatcher_info.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['sim_time', 'planning_time_sec', 'robots_number', 'tasks_number'])
+        csv_file.close()
+
         # ustawienie naglowkow w logu od błędów
         with open(self.file_path + "errors.csv", 'a') as csv_file:
             writer = csv.writer(csv_file)
@@ -622,7 +711,17 @@ class DataLogger:
         # ustawienie naglowkow w logu od monitorowania obciazenia krawedzi grafu
         with open(self.file_path + "graph_traffic.csv", 'a') as csv_file:
             writer = csv.writer(csv_file)
-            writer.writerow(['sim_time', 'group_id', 'start_node_id', 'end_node_id', 'n_robots', 'max_robots', 'traffic'])
+            writer.writerow(['sim_time', 'group_id', 'start_node_id', 'end_node_id', 'n_robots', 'max_robots',
+                             'traffic'])
+        csv_file.close()
+
+    def save_dispatcher(self, sim_time, dispatcher_info_data):
+        with open(self.file_path + "dispatcher_info.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            # ['sim_time', 'planning_time_sec', 'robots_number', 'tasks_number']
+            data = np.concatenate((sim_time, dispatcher_info_data[0], dispatcher_info_data[1],
+                                   dispatcher_info_data[2]), axis=None)
+            writer.writerow(data)
         csv_file.close()
 
     def save_behaviour(self, sim_time, task, is_return_go_to):
@@ -702,7 +801,7 @@ class DataAnalyzer:
 
         self.time_slider = ipywidgets.IntSlider()
         self._update_button = ipywidgets.ToggleButton(value=False, description='update_button', icon='check',
-                                                 layout=ipywidgets.Layout(visibility = 'hidden'))
+                                                      layout=ipywidgets.Layout(visibility='hidden'))
 
     def run(self):
         self.create_tasks_gant()
@@ -737,7 +836,7 @@ class DataAnalyzer:
                               title='Plan wykonanych zadan', show_colorbar=True,
                               group_tasks=True,
                               showgrid_x=True, showgrid_y=True)
-        ## add anotations
+        # add annotations
         robots_y_value = {}
         n = len(csv_data.robot_id.unique()) - 1
         for robot in csv_data.robot_id.unique():
@@ -778,13 +877,13 @@ class DataAnalyzer:
             plot_data.append(dict(Task=str(data["robot_id"]), Start=start_time, Finish=end_time,
                                   Resource=resource_name))
             if resource_name not in colors:
-                colors[resource_name] = 'rgb({},{},{})'.format(0,randint(0,255),0)
+                colors[resource_name] = 'rgb({},{},{})'.format(0, randint(0, 255), 0)
             i += 1
 
         fig = ff.create_gantt(plot_data, index_col='Resource',
                               title='Plan wykonanych zachowan w zadaniach', show_colorbar=True,
-                              group_tasks=True, showgrid_x=True, showgrid_y=True, colors = colors)
-        ## add anotations
+                              group_tasks=True, showgrid_x=True, showgrid_y=True, colors=colors)
+        # add annotations
         robots_y_value = {}
         n = len(csv_data.robot_id.unique()) - 1
         for robot in csv_data.robot_id.unique():
@@ -826,7 +925,7 @@ class DataAnalyzer:
                 i += 1
             fig = ff.create_gantt(plot_data, index_col='Resource',
                                   title='Zadania wykonywane dla POI {}'.format(poi), show_colorbar=True,
-                                  group_tasks=True, showgrid_x=True, showgrid_y=True, colors = colors)
+                                  group_tasks=True, showgrid_x=True, showgrid_y=True, colors=colors)
 
             text_font = dict(size=12, color='black')
             for index, data in filtered_csv_data.iterrows():
@@ -866,8 +965,8 @@ class DataAnalyzer:
                 i += 1
             fig = ff.create_gantt(plot_data, index_col='Resource',
                                   title='Zadania wykonywane dla POI {}'.format(poi), show_colorbar=True,
-                                  group_tasks=True, showgrid_x=True, showgrid_y=True, colors = colors)
-            ## add anotations
+                                  group_tasks=True, showgrid_x=True, showgrid_y=True, colors=colors)
+            # add annotations
             robots_y_value = {}
             n = len(filtered_csv_data.robot_id.unique()) - 1
             for robot in filtered_csv_data.robot_id.unique():
@@ -905,7 +1004,7 @@ class DataAnalyzer:
             plot_data.append(dict(Task=edge_name, Start=start_time, Finish=end_time, Resource=data["traffic"]))
             i += 1
         fig = ff.create_gantt(plot_data, index_col='Resource', title='Krawędzie grafu nienależące do grup',
-                              show_colorbar=True, group_tasks=True, showgrid_x=True, showgrid_y=True, colors = "Reds")
+                              show_colorbar=True, group_tasks=True, showgrid_x=True, showgrid_y=True, colors="Reds")
 
         fig['layout']['yaxis']['title'] = "ID krawędzi"
         py.offline.plot(fig, filename=self.file_path + 'graph_edges_no_group.html', auto_open=False)
@@ -933,7 +1032,7 @@ class DataAnalyzer:
             i += 1
             start_time = end_time
         fig = ff.create_gantt(plot_data, index_col='Resource', title='Krawędzie grafu należące do grup',
-                              show_colorbar=True, group_tasks=True, showgrid_x=True, showgrid_y=True, colors = "Reds")
+                              show_colorbar=True, group_tasks=True, showgrid_x=True, showgrid_y=True, colors="Reds")
 
         fig['layout']['yaxis']['title'] = "ID krawędzi"
         fig['layout']['height'] = 800
@@ -991,7 +1090,7 @@ class DataAnalyzer:
         for index, row in filtered_data.iterrows():
             self.graph.edges[row.start_node_id, row.end_node_id]["traffic"] = int(row["traffic"])
             red = row["traffic"]/100.0
-            color = (red,0,0,1) if red > 0.0 else (0,0,0,0.25)
+            color = (red, 0, 0, 1) if red > 0.0 else (0, 0, 0, 0.25)
             self.graph.edges[row.start_node_id, row.end_node_id]["color"] = color
 
         node_pos = nx.get_node_attributes(self.graph, "pos")
@@ -1001,7 +1100,7 @@ class DataAnalyzer:
 
         nx.draw_networkx(self.graph, node_pos, node_color=node_col, edge_color=edge_col, node_size=150, font_size=9,
                          with_labels=True, font_color="w", width=3)
-        #nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=traffic, font_size=10)
+        # nx.draw_networkx_edge_labels(self.graph, node_pos, edge_labels=traffic, font_size=10)
 
     def _update_graph_robots_count(self, button):
         plt.figure(figsize=(15, 15))
