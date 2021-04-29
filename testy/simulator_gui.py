@@ -7,22 +7,24 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import json
 
-INFO_OUTPUT = widgets.Output(layout=widgets.Layout(height='50px', width = "100%"))
+INFO_OUTPUT = widgets.Output(layout=widgets.Layout(height='50px', width="100%"))
 HEIGHT_TABLES = "300px"
+
 
 def update_info(info_data):
     with INFO_OUTPUT:
         INFO_OUTPUT.clear_output()
         display(info_data)
 
+
 class RobotsCreator:
     """
     Klasa odpowiedzialna za obsluge i wyswietlanie panelu do konfiguracji robotow
-    Atributes:
+    Attributes:
         robot_id (int): domyslnie zwiekszajace sie o 1 id nowego robota
         robots (list(Robot)): lista nowo utworzonych robotów
 
-        Widgety
+        #Widgety
             tab_widget (Tab): zakladki od dodawania, usuwania robota i wyswietlania tabeli z wprowadzonymi robotami
 
         Widgety dla panelu dodaj robota
@@ -37,7 +39,7 @@ class RobotsCreator:
 
         Widgety dla panelu lista robotow
             robots_table_widget (Output): tabela z lista wprowadzonych robotow (robot name, poi startowe, poziom
-                naladownaia baterii w %)
+                naladowania baterii w %)
     """
     def __init__(self, pois_raw):
         """
@@ -48,6 +50,18 @@ class RobotsCreator:
         """
         self.robot_id = 0
         self.robots = []
+        # Add Panel
+        self.add_widget = widgets.Button()
+        self.robot_name_widget = widgets.Text()
+        self.start_poi_widget = widgets.Dropdown()
+        self.battery_lvl_widget = widgets.FloatText()
+        # Remove panel
+        self.remove_widget = widgets.Button()
+        self.robot_to_remove_widget = widgets.Dropdown()
+        # create tabs
+        self.robots_table_widget = widgets.Output()
+        self.tab_widget = widgets.Tab()
+
         self.create_tabs(pois_raw)
 
     def create_add_panel(self, pois_raw):
@@ -127,7 +141,6 @@ class RobotsCreator:
         Parameters:
             button (Button): przycisk od usuwania robota
         """
-        i = self.robot_to_remove_widget.options.index
         for i in range(len(self.robots)):
             if self.robots[i].id == self.robot_to_remove_widget.value:
                 del self.robots[i]
@@ -149,7 +162,7 @@ class RobotsCreator:
 
     def update_robots_list(self):
         """
-        Aktualizuje wysiwtlana tabele (robots_table_widget) z robotami oraz kontrolke do wyboru robota
+        Aktualizuje wyswietlana tabele (robots_table_widget) z robotami oraz kontrolke do wyboru robota
         (self.robot_to_remove_widget) do usuniecia.
         """
         self.robot_to_remove_widget.options = [robot.id for robot in self.robots]
@@ -158,7 +171,7 @@ class RobotsCreator:
             robots_data = []
             for robot in self.robots:
                 robots_data.append([robot.id, robot.poi_id, robot.battery.capacity/robot.battery.max_capacity*100])
-            df = pd.DataFrame(robots_data,columns=["robot_name", "POI", "Battery lvl [%]"])
+            df = pd.DataFrame(robots_data, columns=["robot_name", "POI", "Battery lvl [%]"])
             df.style.set_table_styles([dict(selector='th', props=[('text-align', 'center')])])
             left_aligned_df = df.style.set_properties(**{'text-align': 'center'})
             display(left_aligned_df)
@@ -177,16 +190,16 @@ class RobotsCreator:
 
         self.update_robots_list()
 
+
 class TasksPatternCreator:
     """
     Klasa odpowiedzialna za obsluge i wyswietlanie panelu do konfiguracji szablonow zadan
-    Atributes:
-        TYPES_ID (dict): zawiera informacje o stalym id dla danego zachowania robota - odniesienie do bazy
+    Attributes:
         pattern_id (int): domyslne id nowego robota zwiekszajace sie o 1 z kazdym dodanym robotem
         new_behaviours_config ([]): lista przechowujaca informacje o tymczasowych zachowaniach do dodania
         tasks_pattern ([Task, Task, ...]): lista wprowadzonych szablonow zadan
 
-        Widgety
+        #Widgety
             tab_widget (Tab): zakladki do dodawania, usuwania i wyswietlania aktualnie skonfigurowanych szablonow
                                    zadan
 
@@ -196,7 +209,7 @@ class TasksPatternCreator:
             poi_widget (Dropdown): lista z poi do wyboru. Widoczna gdy wybrane jest zachowanie GO_TO
             beh_widget (Dropdown): lista rozwijana do wyboru jednego z zachowan GO_TO, DOCK, WAIT, BAT_EX, UNDOCK
             add_beh_widget (Button): przycisk odpowiadajacy za dodanie nowego zachowania do zadania
-            clear_beh_widget (Button): przycisk od wyczyszczenia wszystkich dotychczasowo wprowadzonych zachowniach
+            clear_beh_widget (Button): przycisk od wyczyszczenia wszystkich dotychczasowo wprowadzonych zachowaniach
                                        w zadaniu
             priority_widget (Dropdown): wybor priorytetu zadania
             add_task_widget (Button): przycisk od dodawania nowego szablonu zadania
@@ -217,6 +230,7 @@ class TasksPatternCreator:
         "BAT_EX": "4",
         "UNDOCK": "5"
     }
+
     def __init__(self, pois_raw):
         """
         Inicjalizacja i utworzenie interfejsu do obslugi konfiguracji szablonow zadan w systemie do testow.
@@ -227,6 +241,23 @@ class TasksPatternCreator:
         self.pattern_id = 0
         self.new_behaviours_config = []
         self.tasks_pattern = []
+        # Add panel
+        self.beh_config_output_widget = widgets.Text()
+        self.pattern_name_widget = widgets.Text()
+        self.poi_widget = widgets.Dropdown()
+        self.beh_widget = widgets.Dropdown()
+        self.add_beh_widget = widgets.Button()
+        self.add_beh_widget = widgets.Button()
+        self.clear_beh_widget = widgets.Button()
+        self.priority_widget = widgets.Dropdown()
+        self.add_task_widget = widgets.Button()
+        # Remove panel
+        self.remove_widget = widgets.Button()
+        self.pattern_to_remove_widget = widgets.Dropdown()
+        # create tabs
+        self.tasks_table_widget = widgets.Output()
+        self.tab_widget = widgets.Tab()
+
         self.create_tabs(pois_raw)
 
     def create_add_panel(self, pois_raw):
@@ -274,7 +305,7 @@ class TasksPatternCreator:
 
     def create_tabs(self, pois_raw):
         """
-        Odpowiada za utworzenie interfejsu konfiguratora szablonow zadan (dowanie, usuwanie, wyswietlanie listy
+        Odpowiada za utworzenie interfejsu konfiguratora szablonow zadan (dodawanie, usuwanie, wyswietlanie listy
         aktualnie dostepnych szablonow).
 
         Parameters:
@@ -329,7 +360,7 @@ class TasksPatternCreator:
                     behaviours += ", "
 
                 pattern_tasks_data.append([task.id, task.priority, behaviours])
-            df = pd.DataFrame(pattern_tasks_data,columns=["pattern id", "priorytet", "Behaviours"])
+            df = pd.DataFrame(pattern_tasks_data, columns=["pattern id", "priorytet", "Behaviours"])
 
             df.style.set_table_styles([dict(selector='th', props=[('text-align', 'center')])])
             left_aligned_df = df.style.set_properties(**{'text-align': 'center'})
@@ -343,14 +374,14 @@ class TasksPatternCreator:
         """
         priorities = {"low": 1, "normal": 2, "high": 3}
         task = Task({"id": self.pattern_name_widget.value,
-         "behaviours": self.new_behaviours_config,
-         "current_behaviour_index": -1, #index tablicy nie zachowania
-         "status": Task.STATUS_LIST["TO_DO"],
-         "robot": None,
-         "start_time": "2018-06-29 07:37:27",
-         "weight": priorities[self.priority_widget.value],
-         "priority": priorities[self.priority_widget.value]
-        })
+                     "behaviours": self.new_behaviours_config,
+                     "current_behaviour_index": -1,  # index tablicy nie zachowania
+                     "status": Task.STATUS_LIST["TO_DO"],
+                     "robot": None,
+                     "start_time": "2018-06-29 07:37:27",
+                     "weight": priorities[self.priority_widget.value],
+                     "priority": priorities[self.priority_widget.value]
+                     })
         self.tasks_pattern.append(task)
         update_info("Dodano zadanie: " + str(self.pattern_name_widget.value))
 
@@ -366,7 +397,6 @@ class TasksPatternCreator:
         Parameters:
             button (Button): przycisk dodajacy nowy szablon zadania
         """
-        behaviour = {}
         poi_id = self.poi_widget.value
         beh_type = self.beh_widget.value
         if beh_type != Behaviour.TYPES["goto"]:
@@ -419,10 +449,10 @@ class TasksPatternCreator:
             behaviours = []
             for behaviour in pattern.behaviours:
                 behaviours.append({"id": behaviour.id, "parameters": behaviour.parameters})
-            patterns_data.append({"id":pattern.id, "behaviours": behaviours,
-                                 "current_behaviour_index": pattern.current_behaviour_index, "status":pattern.status,
-                                 "robot": pattern.robot_id, "start_time": pattern.start_time, "weight": pattern.weight,
-                                 "priority": pattern.priority})
+            patterns_data.append({"id": pattern.id, "behaviours": behaviours,
+                                  "current_behaviour_index": pattern.current_behaviour_index, "status": pattern.status,
+                                  "robot": pattern.robot_id, "start_time": pattern.start_time, "weight": pattern.weight,
+                                  "priority": pattern.priority})
         return patterns_data
 
     def import_tasks_pattern_config(self, patterns_data):
@@ -432,17 +462,18 @@ class TasksPatternCreator:
 
         self.update_tasks_pattern_list()
 
+
 class TopStatePanel:
     """
     Klasa odpowiada za obsluge panelu z podstawowymi informacjami o stanie systemu w trakcie testu.
     Attributes:
-        Widgety
+        #Widgety
             panel_widget (Tab): glowne GUI panelu
 
             robots_on_edge_widget (Button): informuje o prawidlowym stanie liczbowym robotow na krawedziach i w
                                             grupach (1)
             discharged_robots_widget (Button): przycisk informuje o liczbie rozladowanych robotow
-            warrrning_battery_widget (Button): przycisk informuje o liczbie robotow z poziomem naladowania baterii
+            warning_battery_widget (Button): przycisk informuje o liczbie robotow z poziomem naladowania baterii
                                                ponizej progu ostrzegawczego
             critical_battery_widget (Button): przycisk informuje o liczbie robotow z poziomem naladowania baterii
                                               ponizej progu krytycznego
@@ -465,10 +496,10 @@ class TopStatePanel:
                                                     layout=button_layout)
         self.discharged_robots_widget = widgets.Button(description='Rozladowane roboty: ', disabled=False,
                                                        button_style='success', icon='', layout=button_layout)
-        self.warrrning_battery_widget = widgets.Button(description='Bateria < warrning: ', disabled=False,
-                                                       button_style='success', icon='', layout=button_layout)
+        self.warning_battery_widget = widgets.Button(description='Bateria < warning: ', disabled=False,
+                                                     button_style='success', icon='', layout=button_layout)
         self.critical_battery_widget = widgets.Button(description='Bateria < critical: ', disabled=False,
-                                                       button_style='success', icon='', layout=button_layout)
+                                                      button_style='success', icon='', layout=button_layout)
         self.to_do_tasks_widget = widgets.Button(description='TO_DO: ', disabled=False, button_style='', icon='',
                                                  layout=button_layout)
         self.in_progress_tasks_widget = widgets.Button(description='IN_PROGRESS: ', disabled=False, button_style='info',
@@ -480,11 +511,11 @@ class TopStatePanel:
         self.all_swaps_widget = widgets.Text(value="0")
 
         left_robots_column = widgets.VBox([self.robots_on_edge_widget, self.discharged_robots_widget])
-        right_robots_column = widgets.VBox([self.warrrning_battery_widget, self.critical_battery_widget])
-        left_task_column =  widgets.VBox([widgets.Label("Wszystkie zadania"), self.all_tasks_widget,
-                                          widgets.Label("Wykonane wymiany baterii"), self.all_swaps_widget])
-        right_task_column =  widgets.VBox([widgets.Label("Zadania"), self.to_do_tasks_widget,
-                                           self.in_progress_tasks_widget, self.done_tasks_widget])
+        right_robots_column = widgets.VBox([self.warning_battery_widget, self.critical_battery_widget])
+        left_task_column = widgets.VBox([widgets.Label("Wszystkie zadania"), self.all_tasks_widget,
+                                        widgets.Label("Wykonane wymiany baterii"), self.all_swaps_widget])
+        right_task_column = widgets.VBox([widgets.Label("Zadania"), self.to_do_tasks_widget,
+                                          self.in_progress_tasks_widget, self.done_tasks_widget])
         robots_panel = widgets.VBox([widgets.Label("Stan robotow"), widgets.HBox([left_robots_column,
                                                                                   right_robots_column])])
         task_panel = widgets.VBox([widgets.Label("Stan zadan"), widgets.HBox([left_task_column, right_task_column])])
@@ -496,7 +527,7 @@ class TopStatePanel:
         Aktualizacja kontrolki (robots_on_edge_widget) w zaleznosci od tego czy wystepuje bledna liczba robotow
         czy nie. DLa blednej zmieniony jest styl na "danger", a dla poprawnej wartosci na "success".
         Parameters:
-            error (bool): informacja czy jest bledna liczba robotow na krawedziach, w grupie krawedzi
+            valid_graph (bool): informacja czy jest bledna liczba robotow na krawedziach, w grupie krawedzi
         """
         if valid_graph:
             self.robots_on_edge_widget.button_style = "success"
@@ -520,20 +551,20 @@ class TopStatePanel:
 
     def set_battery_warning_robots(self, warning_robots):
         """
-        Aktualizacja kontrolki (warrrning_battery_widget). Jesli jakis robot jest ponizej tego poziomu, a przed
+        Aktualizacja kontrolki (warning_battery_widget). Jesli jakis robot jest ponizej tego poziomu, a przed
         wystapieniem poziomu krytycznego to ustawiany jest styl przycisku "warning", w przeciwnym wypadku "success".
         Parameters:
             warning_robots (int): liczba robotow z poziomem ostrzegawczym baterii
         """
-        self.warrrning_battery_widget.description = 'Bateria < warrning: ' + str(warning_robots)
+        self.warning_battery_widget.description = 'Bateria < warning: ' + str(warning_robots)
         if warning_robots != 0:
-            self.warrrning_battery_widget.button_style = "warning"
+            self.warning_battery_widget.button_style = "warning"
         else:
-            self.warrrning_battery_widget.button_style = "success"
+            self.warning_battery_widget.button_style = "success"
 
     def set_battery_critical_robots(self, critical_robots):
         """
-        Aktualizacja kontrolki (warrrning_battery_widget). Jesli jakis robot jest ponizej tego poziomu, a przed
+        Aktualizacja kontrolki (warning_battery_widget). Jesli jakis robot jest ponizej tego poziomu, a przed
         wystapieniem poziomu krytycznego to ustawiany jest styl przycisku "warning", w przeciwnym wypadku "success".
         Parameters:
             critical_robots (int): liczba robotow z poziomem ostrzegawczym baterii
@@ -588,6 +619,7 @@ class TopStatePanel:
         """
         self.done_tasks_widget.description = "DONE: " + str(tasks_number)
 
+
 class TaskPanel:
     """
     Klasa odpowiedzialna za konfiguracje i obsluge panelu do tworzenia nowych zadan na podstawie juz istniejacej
@@ -597,9 +629,9 @@ class TaskPanel:
         tasks (list(Task)): lista zadan do wykonania
         patterns (list(Task)): lista szablonow do tworzenia zadan
         robots_id (list(string)): lista z id robotow do wyboru przy tworzeniu zadania. Z uwzglednieniem braku
-                                  przypisania robotu do zadania (None).
+                                  przypisania robota do zadania (None).
 
-        Widgety
+        #Widgety
             tab_widget (Tab): GUI panelu do konfiguracji zadan
 
             task_name_widget (Text): nazwa zadania, domyslnie jest generowana na podstawie zwiekszajacej sie wartosci
@@ -610,7 +642,7 @@ class TaskPanel:
 
             task_to_remove_widget (Dropdown): lista rozwijana z wyborem zadania do usuniecia
             remove_task_widget (Button): przycisk od usuwania wybranego zadania
-            remove_all_tasks_widget (Buttono): przycisk od usuwania wszystkich dotychczas wprowadzonych zadan
+            remove_all_tasks_widget (Button): przycisk od usuwania wszystkich dotychczas wprowadzonych zadan
 
             tasks_to_create_widget (IntText): liczba zadan do wygenerowania
             add_auto_created_tasks_widget (Button): przycisk generujacy podana liczbe zadan
@@ -629,7 +661,20 @@ class TaskPanel:
         self.tasks = []
         self.patterns = task_patterns
         self.robots_id = [None] + [robot.id for robot in robots]
-        self.tasks_table_widget = widgets.Output(layout=widgets.Layout(height=HEIGHT_TABLES, width = "100%",
+        # panel do tworzenia nowych zadan
+        self.task_name_widget = widgets.Text()
+        self.patterns_widget = widgets.Dropdown()
+        self.robots_widget = widgets.Dropdown()
+        self.add_task_widget = widgets.Button()
+        # panel do automatycznego generowania zadan
+        self.tasks_to_create_widget = widgets.IntText()
+        self.add_auto_created_tasks_widget = widgets.Button()
+        # panel do usuwania zadan
+        self.task_to_remove_widget = widgets.Dropdown()
+        self.remove_task_widget = widgets.Button()
+        self.remove_all_tasks_widget = widgets.Button()
+        # konfiguracja zakladek
+        self.tasks_table_widget = widgets.Output(layout=widgets.Layout(height=HEIGHT_TABLES, width="100%",
                                                                        overflow_y='auto'))
         self.tab_widget = widgets.Tab([self.create_new_task_tab(), self.create_remove_task_tab(),
                                        self.create_auto_creator_tasks_tab(),
@@ -637,7 +682,7 @@ class TaskPanel:
         self.tab_widget.set_title(0, "Nowe")
         self.tab_widget.set_title(1, "Usun zadanie")
         self.tab_widget.set_title(2, "Generator zadan")
-        self.tab_widget.set_title(3, "Konfigurator cyklicnzych zadan") # TODO
+        self.tab_widget.set_title(3, "Konfigurator cyklicznych zadan")  # TODO
         self.tab_widget.set_title(4, "Zadania do wykonania")
 
     def create_new_task_tab(self):
@@ -648,15 +693,15 @@ class TaskPanel:
                             patterns_widget, robots_widget, add_task_widget)
         """
         self.task_name_widget = widgets.Text(value=str(self.task_id))
-        paterns_ids = [task.id for task in self.patterns]
-        self.patterns_widget = widgets.Dropdown(options=paterns_ids, description='task pattern id:', disabled=False)
+        patterns_ids = [task.id for task in self.patterns]
+        self.patterns_widget = widgets.Dropdown(options=patterns_ids, description='task pattern id:', disabled=False)
         self.robots_widget = widgets.Dropdown(options=self.robots_id, value=self.robots_id[0], description='robot id:',
                                               disabled=False,)
         self.add_task_widget = widgets.Button(description='Dodaj zadanie', disabled=False, button_style='',
                                               icon='check')
         self.add_task_widget.on_click(self.add_task_widget_button)
         return widgets.VBox([widgets.HBox([self.task_name_widget, self.patterns_widget, self.robots_widget]),
-                                           self.add_task_widget])
+                             self.add_task_widget])
 
     def create_auto_creator_tasks_tab(self):
         """
@@ -684,7 +729,7 @@ class TaskPanel:
         self.remove_task_widget = widgets.Button(description='Usun zadanie', disabled=False, button_style='',
                                                  icon='check')
         self.remove_all_tasks_widget = widgets.Button(description='Usun wszystkie zadania', disabled=False,
-                                                      button_style='', icon='check' )
+                                                      button_style='', icon='check')
         self.remove_task_widget.on_click(self.remove_task_widget_button)
         self.remove_all_tasks_widget.on_click(self.remove_all_tasks_widget_button)
         return widgets.VBox([widgets.HBox([self.task_to_remove_widget, self.remove_task_widget]),
@@ -766,7 +811,7 @@ class TaskPanel:
                     behaviours += ", "
 
                 tasks_data.append([task.id, task.robot_id, task.priority, behaviours])
-            df = pd.DataFrame(tasks_data,columns=["task id", "robot", "priorytet", "zachowania"])
+            df = pd.DataFrame(tasks_data, columns=["task id", "robot", "priorytet", "zachowania"])
 
             df.style.set_table_styles([dict(selector='th', props=[('text-align', 'center')])])
             left_aligned_df = df.style.set_properties(**{'text-align': 'center'})
@@ -786,7 +831,6 @@ class TaskPanel:
 
         for i in range(self.tasks_to_create_widget.value):
             task = copy.copy(self.patterns[random.randrange(0, n_patterns, 1)])
-            assign_robot = 0
             if random.randrange(0, 100, 1) > 80:
                 # wylosowac robota
                 task.robot_id = self.robots_id[random.randrange(0, n_robots, 1)]
@@ -807,10 +851,10 @@ class TaskPanel:
             for behaviour in pattern.behaviours:
                 behaviours.append({"id": behaviour.id, "parameters": behaviour.parameters})
 
-            tasks_data.append({"id":pattern.id, "behaviours": behaviours,
-                                 "current_behaviour_index": pattern.current_behaviour_index, "status":pattern.status,
-                                 "robot": pattern.robot_id, "start_time": pattern.start_time, "weight": pattern.weight,
-                                 "priority": pattern.priority})
+            tasks_data.append({"id": pattern.id, "behaviours": behaviours,
+                               "current_behaviour_index": pattern.current_behaviour_index, "status": pattern.status,
+                               "robot": pattern.robot_id, "start_time": pattern.start_time, "weight": pattern.weight,
+                               "priority": pattern.priority})
         return tasks_data
 
     def import_tasks_config(self, tasks_data):
@@ -819,6 +863,7 @@ class TaskPanel:
             self.tasks.append(Task(data))
 
         self.update_tasks_list()
+
 
 class TestGuiPanel:
     """
@@ -831,7 +876,7 @@ class TestGuiPanel:
         task_pattern_creator (TasksPatternCreator): panel od obslugi szablonow zadan
         task_panel (TaskPanel): panel od obslugi zadan
 
-        Widgety
+        #Widgety
             graph_widget (Output): wyswietlanie grafu wraz z aktualna liczba robotow na krawedzi
             robots_table_widget (Output): wyswietla tabele ze stanem robotow (kolumny: robot_id, task_id,
                                           status_is_free, end_behaviour, battery_lvl, edge)
@@ -852,16 +897,6 @@ class TestGuiPanel:
             pois_raw: ([{"id": string, "pose": (float,float)), "type": gc.base_node_type["..."]}, ...]) - lista
                 POI w systemie
         """
-        self.init_gui(pois_raw)
-
-    def init_gui(self, pois_raw):
-        """
-        Inicjalizacja i utworzenie interfejsu do obslu
-        gi GUI panelu konfiguracyjnego i monitorujacego symulacje.
-        Parameters:
-            pois_raw: ([{"id": string, "pose": (float,float)), "type": gc.base_node_type["..."]}, ...]) - lista
-                POI w systemie
-        """
         global INFO_OUTPUT
         self.graph_widget = widgets.Output()
 
@@ -873,11 +908,11 @@ class TestGuiPanel:
         self.import_config_widget = widgets.FileUpload(accept='', multiple=False)
         self.config_file_name_widget = widgets.Text(value="config", description="nazwa pliku")
         self.export_config_widget = widgets.Button(description='Zapisz konfiguracje', disabled=False, button_style='',
-                                                  icon='')
+                                                   icon='')
 
         configurator_tab = widgets.Tab([widgets.HBox([self.import_config_widget, self.config_file_name_widget,
                                                       self.export_config_widget]), self.robots_creator.tab_widget,
-                                          self.task_pattern_creator.tab_widget, self.task_panel.tab_widget])
+                                        self.task_pattern_creator.tab_widget, self.task_panel.tab_widget])
         configurator_tab.set_title(0, "Ogolne")
         configurator_tab.set_title(1, "Roboty")
         configurator_tab.set_title(2, "Szablony")
@@ -885,16 +920,16 @@ class TestGuiPanel:
 
         self.robots_table_widget = widgets.Output(layout=widgets.Layout(height=HEIGHT_TABLES, overflow_y='auto'))
         self.tasks_table_widget = widgets.Output(layout=widgets.Layout(height=HEIGHT_TABLES, overflow_y='auto'))
-        robots_task = widgets.HBox([widgets.VBox([widgets.Label("Roboty"),self.robots_table_widget]),
-                                    widgets.VBox([widgets.Label("Zadania"),self.tasks_table_widget])])
+        robots_task = widgets.HBox([widgets.VBox([widgets.Label("Roboty"), self.robots_table_widget]),
+                                    widgets.VBox([widgets.Label("Zadania"), self.tasks_table_widget])])
 
         self.edges_table_widget = widgets.Output(layout=widgets.Layout(height=HEIGHT_TABLES, overflow_y='auto'))
 
         children = [configurator_tab, robots_task, self.edges_table_widget]
         main_tab = widgets.Tab(children=children)
         main_tab.set_title(0, "Konfigurator")
-        main_tab.set_title(1, "Roboty / Zadania") # tabela
-        main_tab.set_title(2, "Krawedzie grafu") # tabela
+        main_tab.set_title(1, "Roboty / Zadania")  # tabela
+        main_tab.set_title(2, "Krawedzie grafu")  # tabela
 
         self.main_tab_widget = widgets.VBox([self.top_panel.panel_widget, INFO_OUTPUT, main_tab])
 
@@ -931,6 +966,7 @@ class TestGuiPanel:
         Aktualizacja tabeli z zajetoscia krawedzi i wyswietlenie nowego grafu.
         Parameters:
             graph (SupervisorGraphCreator): graf z robotami na krawedziach.
+            print_graph (boolean): informuje czy ma zostac wyswietlony zaktualizowany graf
         """
         with self.edges_table_widget:
             self.edges_table_widget.clear_output()
@@ -951,7 +987,7 @@ class TestGuiPanel:
         if print_graph:
             with self.graph_widget:
                 self.graph_widget.clear_output()
-                plt.figure(figsize=(15,15))
+                plt.figure(figsize=(15, 15))
                 plt.axis('equal')
                 node_pos = nx.get_node_attributes(graph.graph, "pos")
 
@@ -1015,20 +1051,17 @@ class TestGuiPanel:
 
     def export_config(self, widget):
         file_path = 'config/' + self.config_file_name_widget.value + '.json'
-        data = {}
-        data["robots"] = self.robots_creator.export_robots_config()
-        data["tasks_pattern"] = self.task_pattern_creator.export_tasks_pattern_config()
-        data["tasks"] = self.task_panel.export_tasks_config()
+        data = {"robots": self.robots_creator.export_robots_config(),
+                "tasks_pattern": self.task_pattern_creator.export_tasks_pattern_config(),
+                "tasks": self.task_panel.export_tasks_config()}
         update_info("Zapisano konfiguracje: " + self.config_file_name_widget.value)
         with open(file_path, 'w') as f:
             json.dump(data, f)
 
     def export_log_config(self, file_path):
-        data = {}
-        data["robots"] = self.robots_creator.export_robots_config()
-        data["tasks_pattern"] = self.task_pattern_creator.export_tasks_pattern_config()
-        data["tasks"] = self.task_panel.export_tasks_config()
+        data = {"robots": self.robots_creator.export_robots_config(),
+                "tasks_pattern": self.task_pattern_creator.export_tasks_pattern_config(),
+                "tasks": self.task_panel.export_tasks_config()}
         update_info("Zapisano konfiguracje: " + self.config_file_name_widget.value)
-        with open(file_path +"config_sim_tasks_robots.json", 'w') as f:
+        with open(file_path + "config_sim_tasks_robots.json", 'w') as f:
             json.dump(data, f)
-

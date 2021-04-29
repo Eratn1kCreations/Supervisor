@@ -27,9 +27,11 @@ TIME_STEP_DISPLAY_UPDATE = 0  # 0.05 # krok przerwy w wyswietlaniu symulacji, po
 TURN_ON_ANIMATION_UPDATE = True
 
 
-def get_poi_edge(graph, edge):
+def get_poi_by_edge(graph, edge):
     new_graph = PlanningGraph(graph)
     group_id = new_graph.get_group_id(edge)
+    if group_id == 0:
+        return new_graph.get_poi(edge)
     for edge in new_graph.get_edges_by_group(group_id):
         poi = new_graph.get_poi(edge)
         if poi is not None:
@@ -235,17 +237,17 @@ class Supervisor:
             robots_state_list (list(RobotSim)): aktualny stan robotow z symulacji
         """
         self.graph = graph
-        self.pois_edges = PlanningGraph(graph).get_base_pois_edges()
         self.tasks = []
         self.updated_tasks = []
         self.tasks_count = 0
         self.done_tasks = 0
         self.done_swap_tasks = 0
         self.flag_task_state_updated = True
-        self.add_tasks(tasks)
         self.plan = {}
-        self.init_robots_on_edge(robots_state_list)
         self.next_step_set = {robot.id: False for robot in robots_state_list}
+
+        self.add_tasks(tasks)
+        self.init_robots_on_edge(graph, robots_state_list)
 
     def update_plan(self, robots_state_list):
         robots = self.convert_robots_state_to_dispatcher_format(robots_state_list)
@@ -404,15 +406,16 @@ class Supervisor:
                     robots_with_tasks.append(robot_id)
         return new_tasks, updated_tasks
 
-    def init_robots_on_edge(self, robots_state_list):
+    def init_robots_on_edge(self, graph, robots_state_list):
         """
         Na podstawie przypisanych POI do robotów inicjalizuje stan grafu z położeniem robotów na krawędziach
         Parameters:
             robots_state_list (list(RobotSim)): stan robotow wychodzacy z symulatora
         """
+        pois_edges = PlanningGraph(graph).get_base_pois_edges()
         for robot in robots_state_list:
             if robot.edge is None and robot.poi_id is not None:
-                robot.edge = self.pois_edges[robot.poi_id]
+                robot.edge = pois_edges[robot.poi_id]
 
         for edge in self.graph.graph.edges:
             robots_on_edge = [robot.id for robot in robots_state_list if robot.edge == edge]
@@ -487,7 +490,7 @@ class Simulator:
     def __init__(self, pois_data):
         self.gui = sim_gui.TestGuiPanel(pois_data)
         self.start_inactive_sup_time = 0
-        self.log_data = DataLogger()
+        self.log_data = DataLogger(pois_data)
         self.robots_sim = None
         self.supervisor = None
 
@@ -540,7 +543,7 @@ class Simulator:
 
         new_tasks, updated_tasks = self.supervisor.get_robots_command()
         self.robots_sim.set_tasks(new_tasks, updated_tasks)
-        self.supervisor.init_robots_on_edge(self.robots_sim.robots)
+        self.log_data.save_blocked_poi(sim_time, self.supervisor.graph, new_tasks)
 
         is_valid = self.is_valid_graph(sim_time)
         # Zmiana stanu robota, przypisanie go do nowej krawedzi
@@ -602,13 +605,14 @@ class DataLogger:
         tasks_start_time (dict): slownik z kluczem bedacym id zadania, a wartoscia {"sim_time": float, "task":disp.Task}
         behaviours (dict): slownik z kluczem bedacym id zadania, a  wartoscia {"sim_time": float, "task":disp.Task}
     """
-    def __init__(self):
+    def __init__(self, pois_data):
         current_dt = datetime.datetime.now()
         folder_name = str(current_dt.month) + "-" + str(current_dt.day) + "_" + str(current_dt.hour) + "-" + str(
             current_dt.minute) + "-" + str(current_dt.second)
         self.file_path = os.path.expanduser("~") + "/SMART_logs/dispatcher/" + folder_name + "/"
         self.tasks_start_time = {}
         self.behaviours = {}
+        self.blocked_pois = {poi["id"]: {"start_time": None, "robot_id": None} for poi in pois_data}
         self.init_logs_storage()
 
     def save_data(self, sim_time, supervisor, robots_sim):
@@ -678,6 +682,12 @@ class DataLogger:
         if not os.path.exists(self.file_path):
             os.makedirs(self.file_path)
 
+        # ustawienie naglowkow w logu od obciazenia grupy krawedzi w POI
+        with open(self.file_path + "blocked_poi.csv", 'a') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['start_time', 'end_time', 'robot_id', 'poi_id'])
+        csv_file.close()
+
         # ustawienie naglowkow w logu od dispatchera
         with open(self.file_path + "dispatcher_info.csv", 'a') as csv_file:
             writer = csv.writer(csv_file)
@@ -714,6 +724,51 @@ class DataLogger:
             writer.writerow(['sim_time', 'group_id', 'start_node_id', 'end_node_id', 'n_robots', 'max_robots',
                              'traffic'])
         csv_file.close()
+
+    def save_blocked_poi(self, sim_time, graph, new_tasks):
+        """
+        Args:
+            sim_time:
+            graph:
+            new_tasks ([RobotBehaviour,...]): lista z nowymi zadaniami do przekazania do symulatora robotow
+        Returns:
+        """
+        if len(new_tasks) != 0:
+            data_to_save = []  # {'start_time': ..., 'end_time': ..., 'robot_id': ... , 'poi_id': ...}
+            none_poi_robots_tasks = []
+            poi_robots_tasks = []
+            for task in new_tasks:
+                poi = get_poi_by_edge(graph, task.next_edge)
+                if poi is None:
+                    none_poi_robots_tasks.append(task)
+                else:
+                    poi_robots_tasks.append(task)
+
+            for task in none_poi_robots_tasks:
+                for i in self.blocked_pois.keys():
+                    blocked_poi = self.blocked_pois[i]
+                    if task.robot_id == blocked_poi["robot_id"]:
+                        data = copy.deepcopy(blocked_poi)
+                        data_to_save.append({'start_time': data["start_time"], 'end_time': sim_time,
+                                             'robot_id': data["robot_id"], 'poi_id': i})
+                        blocked_poi["start_time"] = None
+                        blocked_poi["robot_id"] = None
+
+            for task in poi_robots_tasks:
+                poi = get_poi_by_edge(graph, task.next_edge)
+                if self.blocked_pois[poi]["start_time"] is None:
+                    # Nie bylo robota w POI. Inicjalizacja wartości dla danego POI
+                    self.blocked_pois[poi]["start_time"] = sim_time
+                    self.blocked_pois[poi]["robot_id"] = task.robot_id
+
+            with open(self.file_path + "blocked_poi.csv", 'a') as csv_file:
+                writer = csv.writer(csv_file)
+                # ['start_time', 'end_time', 'robot_id', 'poi_id', 'edge']
+                for raw_data in data_to_save:
+                    data = np.concatenate((raw_data["start_time"], raw_data["end_time"], raw_data["robot_id"],
+                                           raw_data["poi_id"]), axis=None)
+                    writer.writerow(data)
+            csv_file.close()
 
     def save_dispatcher(self, sim_time, dispatcher_info_data):
         with open(self.file_path + "dispatcher_info.csv", 'a') as csv_file:
@@ -806,7 +861,9 @@ class DataAnalyzer:
     def run(self):
         self.create_tasks_gant()
         self.create_behaviours_gant()
+        self.create_pois_wait_gant()
         self.create_pois_gant()
+        self.create_pois_wait_gant_all_robots()
         self.create_pois_gant_all_robots()
         self.create_graph_edges_no_group()
         self.create_graph_edges_groups()
@@ -899,7 +956,7 @@ class DataAnalyzer:
         fig['layout']['yaxis']['title'] = "ID/nazwa robotów"
         py.offline.plot(fig, filename=self.file_path + 'behaviours_gant.html', auto_open=False)
 
-    def create_pois_gant(self):
+    def create_pois_wait_gant(self):
         csv_data = pd.read_csv(self.file_log_path + "behaviours.csv")
         csv_data = csv_data.sort_values(by='robot_id')
         colors = ['rgb({},{},{})'.format(255, 0, 0), 'rgb({},{},{})'.format(0, 0, 255)]
@@ -933,9 +990,44 @@ class DataAnalyzer:
                         [dict(x=data["x_poses"], y=0, text=str(data["task_id"]), textangle=0, showarrow=False,
                               font=text_font)])
             fig['layout']['yaxis']['title'] = "ID/nazwa robotów"
+            py.offline.plot(fig, filename=self.file_path + 'poi_{}_wait_gant.html'.format(poi), auto_open=False)
+
+    def create_pois_gant(self):
+        csv_data = pd.read_csv(self.file_log_path + "blocked_poi.csv")
+        csv_data = csv_data.sort_values(by='robot_id')
+        colors = ['rgb({},{},{})'.format(255, 0, 0), 'rgb({},{},{})'.format(0, 0, 255)]
+        df = pd.DataFrame(csv_data)
+
+        x_poses = []
+        for index, data in df.iterrows():
+            x_pos = (data["end_time"] - data["start_time"]) / 2 + data["start_time"]
+            x_poses.append(self.today + datetime.timedelta(seconds=x_pos))
+        df["x_poses"] = x_poses
+
+        for poi in sorted(df.poi_id.unique()):
+            filtered_csv_data = df.loc[df["poi_id"] == poi]
+            sorted_csv_data = filtered_csv_data.sort_values(by='start_time')
+            plot_data = []
+            i = 0
+            for index, data in sorted_csv_data.iterrows():
+                start_time = self.today + datetime.timedelta(seconds=data["start_time"])
+                end_time = self.today + datetime.timedelta(seconds=data["end_time"])
+                plot_data.append(dict(Task="POI {}".format(poi), Start=start_time, Finish=end_time,
+                                      Resource=colors[i % 2]))
+                i += 1
+            fig = ff.create_gantt(plot_data, index_col='Resource',
+                                  title='Zadania wykonywane dla POI {}'.format(poi), show_colorbar=True,
+                                  group_tasks=True, showgrid_x=True, showgrid_y=True, colors=colors)
+
+            text_font = dict(size=12, color='black')
+            for index, data in filtered_csv_data.iterrows():
+                fig['layout']['annotations'] += tuple(
+                        [dict(x=data["x_poses"], y=0, text=str(data["robot_id"]), textangle=0, showarrow=False,
+                              font=text_font)])
+            fig['layout']['yaxis']['title'] = "ID/nazwa robotów"
             py.offline.plot(fig, filename=self.file_path + 'poi_{}_gant.html'.format(poi), auto_open=False)
 
-    def create_pois_gant_all_robots(self):
+    def create_pois_wait_gant_all_robots(self):
         csv_data = pd.read_csv(self.file_log_path + "behaviours.csv")
         csv_data = csv_data.sort_values(by='robot_id')
         colors = {'WAIT': 'rgb({},{},{})'.format(255, 0, 0),
@@ -978,6 +1070,46 @@ class DataAnalyzer:
                 y = robots_y_value[data["robot_id"]]
                 fig['layout']['annotations'] += tuple(
                         [dict(x=data["x_poses"], y=y, text=str(data["task_id"]), textangle=0, showarrow=False,
+                              font=text_font)])
+            fig['layout']['yaxis']['title'] = "ID/nazwa robotów"
+            py.offline.plot(fig, filename=self.file_path + 'poi_{}_wait_gant_robots.html'.format(poi), auto_open=False)
+
+    def create_pois_gant_all_robots(self):
+        csv_data = pd.read_csv(self.file_log_path + "blocked_poi.csv")
+        csv_data = csv_data.sort_values(by='robot_id')
+        colors = {'WAIT': 'rgb({},{},{})'.format(255, 0, 0)}
+        df = pd.DataFrame(csv_data)
+        x_poses = []
+        for index, data in df.iterrows():
+            x_pos = (data["end_time"] - data["start_time"]) / 2 + data["start_time"]
+            x_poses.append(self.today + datetime.timedelta(seconds=x_pos))
+        df["x_poses"] = x_poses
+
+        for poi in sorted(df.poi_id.unique()):
+            filtered_csv_data = df.loc[df["poi_id"] == poi]
+            plot_data = []
+            i = 0
+            for index, data in filtered_csv_data.iterrows():
+                start_time = self.today + datetime.timedelta(seconds=data["start_time"])
+                end_time = self.today + datetime.timedelta(seconds=data["end_time"])
+                plot_data.append(dict(Task=str(data["robot_id"]), Start=start_time, Finish=end_time,
+                                      Resource="WAIT"))
+                i += 1
+            fig = ff.create_gantt(plot_data, index_col='Resource',
+                                  title='Zadania wykonywane dla POI {}'.format(poi), show_colorbar=True,
+                                  group_tasks=True, showgrid_x=True, showgrid_y=True, colors=colors)
+            # add annotations
+            robots_y_value = {}
+            n = len(filtered_csv_data.robot_id.unique()) - 1
+            for robot in filtered_csv_data.robot_id.unique():
+                robots_y_value[robot] = n
+                n -= 1
+
+            text_font = dict(size=12, color='black')
+            for index, data in filtered_csv_data.iterrows():
+                y = robots_y_value[data["robot_id"]]
+                fig['layout']['annotations'] += tuple(
+                        [dict(x=data["x_poses"], y=y, text="", textangle=0, showarrow=False,
                               font=text_font)])
             fig['layout']['yaxis']['title'] = "ID/nazwa robotów"
             py.offline.plot(fig, filename=self.file_path + 'poi_{}_gant_robots.html'.format(poi), auto_open=False)
