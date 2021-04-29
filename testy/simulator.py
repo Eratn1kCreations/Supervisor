@@ -26,6 +26,12 @@ TIME_STEP_DISPLAY_UPDATE = 0  # 0.05 # krok przerwy w wyswietlaniu symulacji, po
                               # teraz tylko do wyswietlania i pokazania animacji
 TURN_ON_ANIMATION_UPDATE = True
 
+BATTERY_ERROR_STATE = {
+    "no_error": 1,
+    "warn": 2,
+    "crit": 3,
+    "discharged": 4
+}
 
 def get_poi_by_edge(graph, edge):
     new_graph = PlanningGraph(graph)
@@ -90,7 +96,7 @@ class RobotSim(disp.Robot):
         self.is_free = self.beh_duration >= self.beh_time
 
         battery_usage = 0.2 * self.battery.stand_usage + 0.8 * self.battery.drive_usage
-        self.battery.capacity -= step_time / (battery_usage * 60 * 60 * step_time)
+        self.battery.capacity -= (step_time / (60 * 60)) * battery_usage
         if self.battery.capacity < 0:
             self.battery.capacity = 0
 
@@ -200,18 +206,18 @@ class RobotsSimulator:
         Returns
             (int): liczba rozladowanych robotow
         """
-        n_discharged = 0
-        n_critical = 0
-        n_warning = 0
+        discharged = []
+        critical = []
+        warning = []
         for robot in self.robots:
             battery_capacity = robot.battery.capacity
             if battery_capacity == 0:
-                n_discharged += 1
+                discharged.append(robot)
             elif battery_capacity < robot.battery.get_critical_capacity():
-                n_critical += 1
+                critical.append(robot)
             elif battery_capacity < robot.battery.get_warning_capacity():
-                n_warning += 1
-        return n_discharged, n_critical,  n_warning
+                warning.append(robot)
+        return discharged, critical,  warning
 
 
 class Supervisor:
@@ -498,6 +504,7 @@ class Simulator:
         tasks = self.gui.task_panel.tasks
         self.robots_sim = RobotsSimulator(self.gui.robots_creator.robots, TIME_STEP_ROBOT_SIM)
         self.supervisor = Supervisor(graph, tasks, self.robots_sim.robots)
+        self.log_data.set_robots(self.robots_sim.robots)
         self.log_data.save_graph(graph.graph)
         self.gui.export_log_config(self.log_data.file_path)
 
@@ -510,24 +517,28 @@ class Simulator:
 
             if i % TIME_STEP_ROBOT_SIM == 0:
                 self.robots_sim.run()
+                discharged, crit_bat, warn_bat = self.robots_sim.get_wrong_battery_state()
                 if TURN_ON_ANIMATION_UPDATE:
-                    discharged, crit_bat, warn_bat = self.robots_sim.get_wrong_battery_state()
-                    self.gui.top_panel.set_discharged_robots(discharged)
-                    self.gui.top_panel.set_battery_critical_robots(crit_bat)
-                    self.gui.top_panel.set_battery_warning_robots(warn_bat)
+                    self.gui.top_panel.set_discharged_robots(len(discharged))
+                    self.gui.top_panel.set_battery_critical_robots(len(crit_bat))
+                    self.gui.top_panel.set_battery_warning_robots(len(warn_bat))
 
+                self.log_data.save_battery_error(i, discharged, crit_bat, warn_bat)
                 self.log_data.save_battery_state(i, self.robots_sim.robots)
 
             if i > SIMULATION_TIME:
                 # przekroczono czas symulacji
+                self.log_data.save_error(i, "Przekroczono czas symulacji")
                 print("przekroczono czas symulacji")
                 break
             elif len(self.supervisor.tasks) == 0:
                 # brak zadan do zlecenia
+                self.log_data.save_error(i, "Brak zadań")
                 print("brak zadan")
                 break
             elif (i - self.start_inactive_sup_time) > TIME_INACTIVE:
                 # polozenie robotow na krawedziach nie zmienilo sie w czasie TIME_INACTIVE
+                self.log_data.save_error(i, "Przekroczono czas nieaktywnosci aktualizacji symulacji")
                 print("Przekroczono czas nieaktywnosci aktualizacji symulacji")
                 break
 
@@ -605,15 +616,23 @@ class DataLogger:
         tasks_start_time (dict): slownik z kluczem bedacym id zadania, a wartoscia {"sim_time": float, "task":disp.Task}
         behaviours (dict): slownik z kluczem bedacym id zadania, a  wartoscia {"sim_time": float, "task":disp.Task}
     """
+
     def __init__(self, pois_data):
         current_dt = datetime.datetime.now()
         folder_name = str(current_dt.month) + "-" + str(current_dt.day) + "_" + str(current_dt.hour) + "-" + str(
             current_dt.minute) + "-" + str(current_dt.second)
+
         self.file_path = os.path.expanduser("~") + "/SMART_logs/dispatcher/" + folder_name + "/"
         self.tasks_start_time = {}
         self.behaviours = {}
         self.blocked_pois = {poi["id"]: {"start_time": None, "robot_id": None} for poi in pois_data}
+        self.robots_error = {}
+
         self.init_logs_storage()
+
+    def set_robots(self, robots):
+        global BATTERY_ERROR_STATE
+        self.robots_error = {robot.id: BATTERY_ERROR_STATE["no_error"] for robot in robots}
 
     def save_data(self, sim_time, supervisor, robots_sim):
         """
@@ -796,6 +815,30 @@ class DataLogger:
             data = np.concatenate((sim_time, error), axis=None)
             writer.writerow(data)
         csv_file.close()
+
+    def save_battery_error(self, sim_time, discharged_robots, crit_robots, warn_robots):
+        global BATTERY_ERROR_STATE
+        analyzed_robots = list(self.robots_error.keys())
+        for robot in discharged_robots:
+            if self.robots_error[robot.id] != BATTERY_ERROR_STATE["discharged"]:
+                self.save_error(sim_time, "Robot {} został rozładowany.".format(robot.id))
+                self.robots_error[robot.id] = BATTERY_ERROR_STATE["discharged"]
+            analyzed_robots.remove(robot.id)
+
+        for robot in crit_robots:
+            if self.robots_error[robot.id] != BATTERY_ERROR_STATE["crit"]:
+                self.save_error(sim_time, "Robot {}. Przekroczono próg krytyczny baterii.".format(robot.id))
+                self.robots_error[robot.id] = BATTERY_ERROR_STATE["crit"]
+            analyzed_robots.remove(robot.id)
+
+        for robot in warn_robots:
+            if self.robots_error[robot.id] != BATTERY_ERROR_STATE["warn"]:
+                self.save_error(sim_time, "Robot {}. Przekroczono próg ostrzegawczy baterii".format(robot.id))
+                self.robots_error[robot.id] = BATTERY_ERROR_STATE["warn"]
+            analyzed_robots.remove(robot.id)
+
+        for robot_id in analyzed_robots:
+            self.robots_error[robot_id] = BATTERY_ERROR_STATE["no_error"]
 
     def save_battery_state(self, sim_time, robots):
         """
