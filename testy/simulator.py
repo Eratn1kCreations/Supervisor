@@ -89,16 +89,16 @@ class RobotSim(disp.Robot):
         self.task_id = None
 
     def run(self, step_time):
-        self.beh_duration = self.beh_duration + step_time
-        if self.beh_duration > self.beh_allowed_time:
-            self.beh_duration = self.beh_allowed_time
-        # warunek zakonczenia wykonywania zachowania
-        self.is_free = self.beh_duration >= self.beh_time
-
         battery_usage = 0.2 * self.battery.stand_usage + 0.8 * self.battery.drive_usage
         self.battery.capacity -= (step_time / (60 * 60)) * battery_usage
         if self.battery.capacity < 0:
             self.battery.capacity = 0
+        else:
+            self.beh_duration = self.beh_duration + step_time
+            if self.beh_duration > self.beh_allowed_time:
+                self.beh_duration = self.beh_allowed_time
+            # warunek zakonczenia wykonywania zachowania
+            self.is_free = self.beh_duration >= self.beh_time
 
     def set_task(self, task):
         """
