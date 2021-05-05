@@ -543,6 +543,7 @@ def test_get_task_travel_stands_time():
     assert result["stand_time"] == stand_time
 
 
+@pytest.mark.skip("swap_time_analyze")
 @pytest.mark.planing_graph
 def test_select_next_task_passed_swap_start_time():
     graph = disp.PlanningGraph(graph_in)
@@ -581,6 +582,7 @@ def test_select_next_task_passed_swap_start_time():
     assert result.id == swap_task.id
 
 
+@pytest.mark.skip("swap_time_analyze")
 @pytest.mark.planing_graph
 def test_select_next_task_critical_battery_lvl():
     graph = disp.PlanningGraph(graph_in)
@@ -626,6 +628,7 @@ def test_select_next_task_critical_battery_lvl():
     assert result.id == swap_task.id
 
 
+@pytest.mark.skip("swap_time_analyze")
 @pytest.mark.planing_graph
 def test_select_next_task_assign():
     graph = disp.PlanningGraph(graph_in)
