@@ -1059,6 +1059,35 @@ class DataAnalyzer:
         self.create_graph_edges_groups()
         self.create_battery_lvl_plot()
 
+    def create_dispatcher_statistics(self):
+        csv_data = pd.read_csv(self.file_log_path + "dispatcher_info.csv")
+        t = csv_data["sim_time"]
+        s1 = csv_data["planning_time_sec"]
+        s2 = csv_data["robots_number"]
+        s3 = csv_data["tasks_number"]
+
+        plt.figure(figsize=(15, 15))
+        plt.suptitle('Planownaie zadań - czas planowania, liczba robotów, liczba zadań', fontsize="x-large")
+        ax1 = plt.subplot(311)
+        plt.title('Czas planowania')
+        plt.ylabel('czas [s]')
+        plt.plot(t, s1)
+        plt.setp(ax1.get_xticklabels(), visible=False)
+
+        ax2 = plt.subplot(312, sharex=ax1)
+        plt.plot(t, s2)
+        plt.title('Liczba robotów')
+        plt.ylabel('liczba robotów')
+        plt.setp(ax2.get_xticklabels(), visible=False)
+
+        ax3 = plt.subplot(313, sharex=ax1)
+        plt.title('Liczba zadań')
+        plt.xlabel('sim time')
+        plt.ylabel('liczba zadań')
+        plt.plot(t, s3)
+
+        plt.savefig(self.file_path + "dispatcher_info.png")
+
     def create_tasks_gant(self):
         csv_data = pd.read_csv(self.file_log_path + "tasks.csv")
         csv_data = csv_data.sort_values(by=['robot_id', 'start_time'])
