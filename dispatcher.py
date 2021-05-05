@@ -48,7 +48,6 @@ class PlaningGraphError(DispatcherError):
 class Behaviour:
     """
     Klasa zawierajaca informacje o pojedynczym zachowaniu dla robota
-
     Attributes:
         id (string): id zachowania dla robota w ramach zadania
         parameters (dict): slownik z parametrami dla robota, moze sie roznic w zaleznosci od typu zachowania
@@ -169,7 +168,6 @@ class Behaviour:
 class Task:
     """
     Klasa przechowuje informacje o pojedymczym zadaniu w systemie
-
     Attributes:
         id (string): id zadania
         robot_id (string): id robota
@@ -248,7 +246,6 @@ class Task:
         """
         Zwraca aktualne zachowanie wykonywane przez robota lub takie ktore ma byc kolejno wykonane, bo poprzednie
         zostalo zakonczone.
-
         Returns:
             (Behaviour): aktualnie wykonywane zachowanie w ramach zadania
         """
@@ -258,7 +255,6 @@ class Task:
     def check_if_task_started(self):
         """
         Sprawdza czy dane zadanie zostalo rozpoczete.
-
         Returns:
             (bool): wartosc True jesli zadanie zostalo rozpoczete w przeciwnym wypadku False
         """
@@ -389,7 +385,6 @@ class TasksManager:
     """
     Klasa odpowiadajaca za analize kolejnych zadan wykonywanych i przydzielonych do robotow. Zawiera liste
     posortowanych zadan po priorytecie wykonania, a nastepnie po czasie.
-
     Attributes:
         tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
     """
@@ -408,7 +403,6 @@ class TasksManager:
     def set_tasks(self, tasks):
         """
         Odpowiada za przekonwertowanie danych wejsciowych i ustawienie zadan dla atrybutu tasks.
-
         Parameters:
             tasks ([Task, Task, ...) - lista zadan dla robotow
         """
@@ -443,7 +437,6 @@ class TasksManager:
     def remove_tasks_by_id(self, tasks_id):
         """
         Usuwa z listy zadania na podstawie przekazanej listy id zadan, ktore trzeba usunac.
-
         Parameters:
              tasks_id ([string, string, ...]): lista z kolejnymi id zadan
         """
@@ -457,7 +450,6 @@ class TasksManager:
     def get_all_unasigned_unstarted_tasks(self):
         """
         Zwraca liste wszystkich nieprzypisanych i nierozpoczetych zadan.
-
         Returns:
              (list(Task)): lista zadan
         """
@@ -479,8 +471,8 @@ class Battery:
     def __init__(self):
         self.max_capacity = 40.0
         self.capacity = 40.0
-        self.drive_usage = 5.0
-        self.stand_usage = 3.5
+        self.drive_usage = 60  # 5.0
+        self.stand_usage = 60  # 3.5
         self.remaining_working_time = 20.0  # [min]
 
     def __str__(self):
@@ -499,7 +491,6 @@ class Battery:
     def get_warning_capacity(self):
         """
         Zwraca pojemnosc baterii przy ktorej przekroczony zostaje poziom ostrzegawczy.
-
         Returns:
             (float): pojemnosc baterii w Ah
         """
@@ -509,7 +500,6 @@ class Battery:
         """
         Zwraca pojemnosc baterii przy ktorej przekroczony zostaje poziom krytyczny. Przy tym poziomie powinien zostac
         zalogowany blad, gdyz grozi on wylaczeniem robota.
-
         Returns:
             (float): pojemnosc baterii w Ah
         """
@@ -543,11 +533,9 @@ class Battery:
         """
         Sprawdza czy robot posiada wystarczajaca liczbe energii zanim pojawi sie ostrzezenie krytyczne. Pod uwage
         brane jest zuzycie energii w trakcie jazdy i postoju zgodnie z planowanym czasem jazdy i postoju.
-
         Parameters:
             drive_time_min (float): czas jazdy w minutach
             stand_time_min (float): czas postoju w minutach
-
         Returns:
             (bool): zwraca informacje o wystarczajacej liczbie energii
         """
@@ -559,7 +547,6 @@ class Battery:
 class Robot:
     """
     Klasa przechowujaca informacje o pojedynczym robocie do ktorego beda przypisywane zadania
-
     Attributes:
         id (string): id robota
         edge ((int,int)): krawedz na ktorej aktualnie znajduje sie robot
@@ -661,7 +648,6 @@ class Robot:
         Zwraca Id POI do ktorego aktualnie jedzie robot lub wykonuje w nim jakas operacje (dokowanie,
         wait, oddokowanie). Dla nowo przydzielonych zadan pozwala na sprawdzenie do ktorego POI bedzie jechal
         robot.
-
         Returns:
             (string): id POI z bazy do ktorego aktualnie jedzie lub bedzie jechal robot, jesli nie jest on skierowany do
                       zadnego POI to zwracana jest wartosc None
@@ -671,7 +657,6 @@ class Robot:
     def get_info(self):
         """
         Zwraca informacje o robocie.
-
         Returns:
             data (string): informacje o robocie
         """
@@ -686,10 +671,8 @@ class Robot:
 class RobotsPlanManager:
     """
     Klasa obslugujaca przypisywanie zadan do robotow i wyciaganie informacji o robotach niezbednych do planowania zadan.
-
     Attributes:
         robots ({"id": Robot, "id": Robot, ...}): slownik z robotami do ktorych beda przypisywane zadania
-
     """
 
     def __init__(self, robots, base_poi_edges):
@@ -728,10 +711,8 @@ class RobotsPlanManager:
     def get_robot_by_id(self, robot_id):
         """
         Dla podanego id zwraca obiekt Robot.
-
         Parameters:
             robot_id (string): id robota
-
         Returns:
             (Robot): informacje o robocie, jeśli nie ma go na liście to None
         """
@@ -743,7 +724,6 @@ class RobotsPlanManager:
     def set_task(self, robot_id, task):
         """
         Przypisuje zadanie dla robota o podanym id. Jeśli go nie ma to blad.
-
         Parameters:
             robot_id (string): id robota
             task (Task): zadanie dla robota
@@ -771,7 +751,6 @@ class RobotsPlanManager:
     def set_next_edge(self, robot_id, next_edge):
         """
         Ustawia kolejna krawedz przejscia dla robota.
-
         Parameters:
             robot_id (string): id robota
             next_edge ((int,int)): nastepna krawedz jaka ma sie poruszac robot
@@ -785,7 +764,6 @@ class RobotsPlanManager:
     def set_end_beh_edge(self, robot_id, end_beh_edge):
         """
         Ustawia informacje o tym czy dane przejscie krawedzia bedzie konczylo zachowanie w zadaniu czy nie.
-
         Parameters:
             robot_id (string): id robota
             end_beh_edge (bool): informacja o tym czy jest to koniec zachowania czy nie
@@ -802,7 +780,6 @@ class RobotsPlanManager:
     def get_free_robots(self):
         """
         Zwraca liste robotow do ktorych zadania nie zostaly przypisane. Atrybut robota 'task' jest None.
-
         Returns:
             ([Robot, Robot, ... ]): lista robotow, ktore nie posiadaja przypisanych zadan.
         """
@@ -811,7 +788,6 @@ class RobotsPlanManager:
     def get_busy_robots(self):
         """
         Zwraca liste robotow do ktorych zadania zostaly przypisane.
-
         Returns:
             ([Robot, Robot, ... ]): lista robotow, wykonujacych zadania
         """
@@ -820,11 +796,9 @@ class RobotsPlanManager:
     def get_robots_id_on_given_edges(self, edges):
         """
         Zwraca liste z id robotow, ktore znajduja sie na podanych krawedziach
-
         Parameters:
             edges ([(int,int), (int,int), ... ]): lista krawedzi na ktorych maja byc znalezione wszystkie
                 roboty
-
         Returns:
             ([string,string, ...]): lista z id robotow znajdujacych sie na wszystkich wskazanych krawedziach
         """
@@ -833,11 +807,9 @@ class RobotsPlanManager:
     def get_robots_id_on_future_edges(self, edges):
         """
         Zwraca liste z id robotow, ktore znajduja sie na podanych krawedziach. Roboty bez zadan zostaja pominiete.
-
        Parameters:
             edges ([(int,int), (int,int), ... ]): lista krawedzi na ktorych maja byc znalezione wszystkie
                 roboty
-
         Returns:
             ([string,string, ...]): lista z id robotow znajdujacych sie na wszystkich wskazanych krawedziach
         """
@@ -846,7 +818,6 @@ class RobotsPlanManager:
     def get_current_robots_goals(self):
         """
         Zwraca slownik robotow wraz z POI do ktorych aktualnie jada roboty
-
         Returns:
             ({robot_id: poi_id, ...}): slownik robotow z POI aktualnego celu
         """
@@ -860,7 +831,6 @@ class RobotsPlanManager:
 class PoisManager:
     """
     Zawiera informacje o POI przypisanych do grafu.
-
     Attributes:
         pois ({poi_id: {"type": typ_poi}, ... ): slownik poi wraz z ich typem
     """
@@ -876,7 +846,6 @@ class PoisManager:
     def set_pois(self, graph):
         """
         Na podstawie danych z grafu tworzy slownik POI przypisanych do wezlow grafu.
-
         Parameters:
              graph (SupervisorGraphCreator): rozszerzony graf do planowania
         """
@@ -888,10 +857,8 @@ class PoisManager:
     def check_if_queue(self, poi_id):
         """
         Sprawdza czy podane POI jest POI kolejkowania.
-
         Parameters:
             poi_id (string): id poi z bazy
-
         Returns:
             (bool): informacja czy poi jest typu kolejkownaia (queue)
         """
@@ -902,7 +869,6 @@ class PoisManager:
     def get_raw_pois_dict(self):
         """
         Zwraca pusta slownik z id poi
-
         Returns:
             ({poi_id: None, poi_id: None, ...}): pusty slownik z POI
         """
@@ -914,10 +880,8 @@ class PoisManager:
     def get_type(self, poi_id):
         """
         Zwraca typ POI na podstawie id.
-
         Parameters:
             poi_id (string): id poi z bazy
-
         Returns:
             (gc.base_node_type[]): typ POI
         """
@@ -929,7 +893,6 @@ class PoisManager:
 class PlanningGraph:
     """
     Klasa do obslugi grafu planujacego.
-
     Attributes:
         graph (DiGraph): dane o grafie z klasy SupervisorGraphCreator
     """
@@ -946,7 +909,6 @@ class PlanningGraph:
         """
         Funkcja odpowiada za zablokowanie krawedzi grafu zwiazanych z innymi POI niz aktualnym (jesli jest w POI) i
         docelowym.
-
         Parameters:
             robot_node (int): wezel grafu z supervisora w ktorym aktualnie jest robot
             target_node (int): wezel grafu z supervisora do ktorego zmierza robot
@@ -963,11 +925,9 @@ class PlanningGraph:
     def get_end_go_to_node(self, poi_id, poi_type):
         """
         Zwraca węzeł końcowy krawędzi dla zadania typu GOTO POI.
-
         Parameters:
             poi_id (string): id POI z bazy
             poi_type (gc.base_node_type["nazwa_typu"]): typ poi
-
         Returns:
             (int): koncowy wezel krawedzi dojazdu do wlasciwego stanowiska
         """
@@ -985,10 +945,8 @@ class PlanningGraph:
     def get_end_docking_node(self, poi_id):
         """
         Zwraca węzeł końcowy krawędzi dla zadania typu DOCK POI.
-
         Parameters:
             poi_id (string): id POI z bazy
-
         Returns:
             (int): koncowy wezel krawedzi zwiazanej z zachowaniem dokowania
         """
@@ -1003,11 +961,9 @@ class PlanningGraph:
     def get_end_wait_node(self, poi_id, poi_type):
         """
         Zwraca węzeł końcowy krawędzi dla zadania typu WAIT POI.
-
         Parameters:
             poi_id (string): id POI z bazy
             poi_type (gc.base_node_type["nazwa_typu"]): typ POI
-
         Returns:
             (int): koncowy wezel krawedzi zwiazanej z zachowaniem WAIT
         """
@@ -1028,10 +984,8 @@ class PlanningGraph:
     def get_end_undocking_node(self, poi_id):
         """
         Zwraca węzeł końcowy krawędzi dla zadania typu UNDOCK POI.
-
         Parameters:
             poi_id (string): id POI z bazy
-
         Returns:
             (int): koncowy wezel krawedzi zwiazanej z zachowaniem UNDOCK
         """
@@ -1048,7 +1002,6 @@ class PlanningGraph:
         """
         Zwraca slownik zawierajacy maksymalna liczbe robotow, ktora moze byc przypisana do POI.
         Przekroczenie tej liczby oznacza, ze roboty moga zaczac sie kolejkowac na glownym szlaku komunikacyjnym.
-
         Returns:
             ({poiId: int, poiId2: int,...}): Slownik z liczba robotow dla ktorego kluczem jest ID POI z bazy, a
             wartoscia maksymalna liczba robotow jaka moze oczekiwac i byc obslugiwana przy stanowisku.
@@ -1082,10 +1035,8 @@ class PlanningGraph:
         """
         Zwraca id grupy do ktorej przypisana jest krawedz. Numer grupy 0 odnosi sie do krawedzi, ktore nie sa od
         siebie wzajemnie zalezne.
-
         Parameters:
             edge((int,int)): krawedz grafu
-
         Returns:
             (int): id grupy krawedzi, 0 dla krawedzi nie wchodzacych w sklad grupy
         """
@@ -1095,10 +1046,8 @@ class PlanningGraph:
         """
         Zwraca liste z id robotow, ktore przynaleza do danej krawedzi lub liste robotow z calej grupy, jesli nalezy
         ona do grupy. Dla niezerowych grup liczba przypisanych robotow do krawedzi grafu musi być 0 lub 1.
-
         Parameters:
             edge (int, int): krawedz dla ktorej maja byc zwrocone roboty
-
         Returns:
             ([string, string, ... ]): lista id robotow, ktore przypisane sa do danej krawedzi lub jesli krawedz stanowi
                 grupe to zwracane sa wszystkie roboty nalezace do grupy.
@@ -1122,10 +1071,8 @@ class PlanningGraph:
     def get_edges_by_group(self, group_id):
         """
         Zwraca liste krawedzi dla grupy o danym id.
-
         Parameters:
             group_id (int): id grupy krawedzi
-
         Returns:
             ([(int, int), (int,int), ... ]): lista krawedzi nalezaca do podanej grupy
         """
@@ -1134,10 +1081,8 @@ class PlanningGraph:
     def get_max_allowed_robots(self, edge):
         """
         Zwraca maksymalna dozwolona liczbe robotow dla danej krawedzi. Jesli krawedz nalezy do grupy to 1 robot.
-
         Attributes:
             edge ((int,int)): dana krawedz
-
         Returns:
               (int): maksymalna liczba robotow jaka moze znajdowac sie na danej krawedzi
         """
@@ -1146,10 +1091,8 @@ class PlanningGraph:
     def get_poi(self, edge):
         """
         Dla podanej krawedzi zwraca zwiazane z nia POI, jesli takie istnieje.
-
         Parameters:
             edge (int, int): krawedz grafu
-
         Returns:
             (string): zwraca id poi, jesli krawedz zwiazana jest z POI, jesli nie to None
         """
@@ -1167,7 +1110,6 @@ class PlanningGraph:
         Parameters:
             start_node (int): wezel od ktorego ma byc rozpoczete planowanie
             end_node (int): wezel celu
-
         Returns:
             (list): kolejne krawedzie grafu, ktorymi ma sie poruszac robot, aby dotrzec do celu
         """
@@ -1180,11 +1122,9 @@ class PlanningGraph:
     def get_path_length(self, start_node, end_node):
         """
         Zwraca wage dojazdu do punktu.
-
         Parameters:
             start_node (int): wezel od ktorego ma byc rozpoczete planowanie
             end_node (int): wezel celu
-
         Returns:
             (float): czas dojazdu od start_node do end_node
         """
@@ -1223,16 +1163,15 @@ class PlanningGraph:
                 raise PlaningGraphError("Input graph wrong structure.")
         return base_poi_edges
 
-    def select_next_task(self, task, swap_task, robot):
+    def select_next_task(self, task, swap_task, robot, test_sim_time):
         """
         Wybiera zadanie dla robota. Jesli robotowi wystarczy energii i nie minal planowany czas wymiany na wykonanie
         zadania to jest mu ono przydzielane, a jesli nie to przydzielane jest zadanie wymiany baterii.
-
         Parameters:
             task (Task): zadanie dla robota, dojazdy do stanowisk
             swap_task (Task): zadanie wymiany baterii
             robot (Robot): robot dla, ktorego ma byc przydzielone zadanie
-
+            test_sim_time (datetime.now()): TODO czas na potrzeby testów symulacyjnych, domyślnie do usunięcia
         Returns:
             (Task): wybrane zadanie dla robota
         """
@@ -1243,7 +1182,8 @@ class PlanningGraph:
         total_time = drive_time + stand_time
         is_no_battery_critical_allert = robot.battery.is_enough_capacity_before_critical_alert(drive_time, stand_time)
 
-        now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        #now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S") TODO do przywrócenia po testach
+        now = datetime.strptime(test_sim_time.strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
         swap_time = datetime.strptime(swap_task.start_time, "%Y-%m-%d %H:%M:%S")
 
         time_to_swap = (swap_time - now) / timedelta(minutes=1)
@@ -1263,7 +1203,6 @@ class PlanningGraph:
         Parameters:
             node_id (int): id wezla grafu rozszerzonego od ktorego wyliczane bedzie pierwsze zachowanie goto
             task (Task): zadanie dla robota
-
         Returns:
             ({"drive_time": float, "stand_time": float, "end_node": int}): czasy postoju, aktywnej jazdy oraz wezel,
                 w ktorym znajdzie sie robot po ukonczeniu zadania
@@ -1302,7 +1241,6 @@ class Dispatcher:
     Klasa dispatchera odpowiadajaca za tworzenie planu, przydzielanie zadan do robotow i unikanie drog
     kolizyjnych na grafie. Wolne roboty blokujace stanowiska kierowane sa odpowiednio na miejsca oczekiwan
     queue/parking.
-
     Attributes:
         planning_graph (PlanningGraph): graf do planowania zadan
         pois (PoisManager): manager poi, zawiera m.in. informacje o ich typach
@@ -1316,7 +1254,6 @@ class Dispatcher:
     def __init__(self, graph_data, robots):
         """
         Utworzenie klasy Dispatcher'a i ustawienie wartosci atrybutow planning_graph, pois, robots_plan.
-
         Parameters:
             graph_data (SupervisorGraphCreator): wygenerwany rozszerzony graf do planowania kolejnych zachowan robotow
             robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
@@ -1330,15 +1267,15 @@ class Dispatcher:
         self.unanalyzed_tasks_handler = None
         self.swap_tasks = {robot.id: None for robot in self.robots_plan.get_free_robots()}
 
+        self.test_sim_time = None  # TODO usunąć, czas dodany na potrzeby testów symulacyjnych
+
     def get_plan_all_free_robots(self, graph_data, robots, tasks):
         """
         Zwraca liste robotow wraz z zaplanowanymi krawedziami przejscia na grafie, ktore aktualnie moga zostac wykonane
-
         Parameters:
             graph_data (SupervisorGraphCreator): wygenerwany rozszerzony graf do planowania kolejnych zachowan robotow
             robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
-
         Returns:
              ({robotId: {"taskId": string, "nextEdge": (string,string)/None, "endBeh": boolean/None},...})
               - plan dla robotow, ktory moze zostac od razu zrealizowany, gdyz nie ma kolizji; jesli niemożliwe jest
@@ -1363,7 +1300,6 @@ class Dispatcher:
             robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
             robot_id (string): id robota dla ktorego ma byc zwrocony plan
-
         Returns:
              ({"taskId": string, "nextEdge": (int,int)/None, "endBeh": boolean/None},...}): plan dla robotow,
              ktory moze zostac od razu zrealizowany, gdyz nie ma kolizji, w przeciwnym wypadku None
@@ -1381,7 +1317,6 @@ class Dispatcher:
     def set_plan(self, robots, tasks):
         """
         Ustawia plan dla robotow.
-
         Parameters:
             robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
@@ -1395,7 +1330,6 @@ class Dispatcher:
 
     def init_robots_plan(self, robots):
         """Ustawia roboty aktywnie dzialajace w systemie tzn. podlegajace planowaniu i przydzielaniu zadan.
-
         Parameters:
             robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych beda przypisywane zadania
         """
@@ -1405,7 +1339,6 @@ class Dispatcher:
     def set_tasks(self, tasks):
         """
         Ustawia menadzera nieprzeanalizowanych zadan w ramach planowania.
-
         Parameters:
             tasks ([Task, Task, ...]): lista posortowanych zadan dla robotow
         """
@@ -1422,8 +1355,7 @@ class Dispatcher:
                 self.swap_tasks[task.robot_id] = task
                 tasks_to_remove.append(task.id)
 
-        for i in tasks_to_remove:
-            self.unanalyzed_tasks_handler.remove_tasks_by_id(i)
+        self.unanalyzed_tasks_handler.remove_tasks_by_id(tasks_to_remove)
 
     def set_tasks_doing_by_robots(self):
         """
@@ -1489,7 +1421,7 @@ class Dispatcher:
                         if robot.id in self.swap_tasks:
                             swap_task = self.swap_tasks[robot.id]
                             if type(swap_task) == Task:
-                                task = self.planning_graph.select_next_task(unanalyzed_task, swap_task, robot)
+                                task = self.planning_graph.select_next_task(unanalyzed_task, swap_task, robot, self.test_sim_time)  # TODO do usunięcia self.test_sim_time, tylko do testow symulacyjnych
                         self.robots_plan.set_task(robot.id, task)
                         self.set_task_edge(robot.id)
                         tasks_id_to_remove.append(task.id)
@@ -1542,6 +1474,11 @@ class Dispatcher:
                         elif robot.edge is None and robot.poi_id is not None:
                             poi = robot.poi_id
                         if goal_id == poi:
+                            if robot.id in self.swap_tasks:
+                                swap_task = self.swap_tasks[robot.id]
+                                if type(swap_task) == Task:
+                                    task = self.planning_graph.select_next_task(task, swap_task, robot,
+                                                                                self.test_sim_time)
                             self.robots_plan.set_task(robot_id, task)
                             self.set_task_edge(robot_id)
                             self.unanalyzed_tasks_handler.remove_tasks_by_id([task.id])
@@ -1564,7 +1501,6 @@ class Dispatcher:
     def set_task_edge(self, robot_id):
         """
         Ustawia kolejna krawedz przejscia dla robota o danym id.
-
         Parameters:
             robot_id (string): id robota dla ktorego ma zostac dokonana aktualizacja przejscia po krawedzi
         """
@@ -1637,7 +1573,6 @@ class Dispatcher:
     def get_robots_id_blocking_used_poi(self):
         """
         Zwraca liste robotow blokujacych POI do ktorego aktualnie jada roboty.
-
         Returns:
             ([robotId,...]): lista zawierajaca ID robotow, ktore blokuja POI.
         """
@@ -1664,7 +1599,6 @@ class Dispatcher:
         Zwraca liczbe robotow, ktore aktualnie uzywaja danego POI. Przez uzywanie POI rozumie sie
         dojazd do POI, dokowanie, obsluge w POI lub oddokowanie. Jesli przydzielona krawedz przejscia dotyczy uzycia
         POI to rowniez jest uwzgledniana.
-
         Returns:
             ({poiId: string, ...}): Slownik z liczba robotow dla ktorego kluczem jest ID POI z bazy
                 a wartoscia liczba robotow zmierzajaca/bedaca do danego POI
@@ -1704,10 +1638,8 @@ class Dispatcher:
         Zwraca liste zadan, ktore nalezy przypisac do robotow. Jako argument podawana jest liczba robotow
         ktore maja otrzymac zadania. Nie moze byc ona wieksza niz liczba robotow, ktore nie maja zadan i pracuja
         w trybie autonomicznym.
-
         Parameters:
             robots_numbers (int): liczba robotow dla ktorych powinny byc wygenerowane zadania
-
         Returns:
             ([Task,Task,...]): lista zadan, ktore nalezy przydzielic do robotow. Liczba zadan moze
                 byc mniejsza niz liczba robotow co wynika z: mniejszej liczby zadan niz robotow; nie istnieja
@@ -1733,7 +1665,6 @@ class Dispatcher:
         Optymalne przypisanie zadan do robotow pod katem wykonania. W pierwszej kolejnosci zadanie o najwyzszym
         priorytecie dostaje robot, ktory wykona je najszybciej. Po przypisaniu zadania usuwane jest ono z listy
         all_tasks.
-
         Parameters:
             tasks ([Task, Task, ...]): lista posortowanych zadan ktore maja byc przypisane do robotow
             robots_id ([string, string, ...]): lista id robotow do ktorych maja zostac przypisane zadania
@@ -1750,6 +1681,11 @@ class Dispatcher:
                     min_task_time = task_time
 
             # Przypisanie robota do zadania
+            if fastest_robot_id in self.swap_tasks:
+                swap_task = self.swap_tasks[fastest_robot_id]
+                if type(swap_task) == Task:
+                    robot = self.robots_plan.get_robot_by_id(fastest_robot_id)
+                    task = self.planning_graph.select_next_task(task, swap_task, robot, self.test_sim_time)
             self.robots_plan.set_task(fastest_robot_id, task)
             self.set_task_edge(fastest_robot_id)
             robots_id.remove(fastest_robot_id)
@@ -1759,10 +1695,8 @@ class Dispatcher:
     def send_free_robots_to_parking(self, blocking_robots_id):
         """
         Tworzy i przypisuje do robotow blokujacych POI zadanie jazdy do Parkingu/Queue w celu odblokowania POI.
-
         Parameters:
             blocking_robots_id ([string, string,...]): lista id robotow, ktore blokuja POI
-
         TODO
             - utworzenie zadan dojazdu w wolne miejsce dla robotow blokujacych POI
             - przypisanie zadan do robotow
@@ -1772,10 +1706,8 @@ class Dispatcher:
     def send_busy_robots_to_parking(self, blocking_robots_id):
         """
         Tworzy i przypisuje do robotow blokujacych POI zadanie jazdy do Parkingu/Queue w celu odblokowania POI.
-
         Parameters:
             blocking_robots_id ([string,string,...]): lista id robotow, ktore blokuja POI
-
         TODO
             - przypisanie zadan do robotow
             - obsluga robotow ktore wykonuja inne zadanie i musza zjechac na parking
@@ -1786,11 +1718,9 @@ class Dispatcher:
         """
         Wybiera z zadania pierwsze zachowanie, ktore nie zostalo jeszcze ukonczone, dla zadan nie rozpoczetych
         jest to pierwsze zachowanie jakie wystepuje w zadaniu.
-
         Parameters:
             task (Task): zadanie dla ktorego okreslany jest wezel do ktorego ma dotrzec robot w zaleznosci
                 od kolejnego zadania do wykonania
-
         Returns:
             (int): id wezla z grafu rozszerzonego na ktorym opiera sie tworzenie zadan
         """
