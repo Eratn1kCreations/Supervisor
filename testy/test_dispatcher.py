@@ -2196,11 +2196,12 @@ def test_dispatcher_from_poi6_to_poi7():
     assert expected_result == plan
 
 
+@pytest.mark.skip("swap_time_analyze")
 @pytest.mark.dispatcher
 def test_dispatcher_assigned_tasks_swap_battery():
     # 1 zadanie przypisane normalnie, bo zaplanowana wymiana jest duzo pozniej              - brak wymiany
     # 2 zadanie - niewlasciwego typu, przypisac normalne zadanie                            - brak wymiany
-    # 3 zadanie - brak wymiany w planie                                                     - brak wymiany
+    # 3 zadanie - brak wymiany w planie               input_data_validationwa               - brak wymiany
     # 4 zadanie - zlecenie wymiany, przekroczony start_time                                 - wymiana
     # 5 zadanie - dalsze wykonywanie zadan spowoduje rozladowanie robota, konieczna wymiana - wymiana
     robots_raw = [
