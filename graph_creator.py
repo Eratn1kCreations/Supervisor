@@ -539,7 +539,6 @@ def get_node_area(start, robot_path_coordinates):
             to brany jest pod uwage wezel startowy, a dla False wezel celu.
         robot_path_coordinates([(float, float), ...]): lista z kolejnymi wspolrzednymi krawedzi ktorymi powinien
             poruszac sie robot.
-
     Returns:
         (LineString): wspolrzedne kolejnych wierzcholkow korytarza dla danego poi
     """
@@ -604,7 +603,6 @@ class SupervisorGraphCreator(DataValidator):
                 "edgeGroupId" (int): identyfikatory grupy krawedzi
                 "sourceNodes" (list): lista z wezlami na podstawie, ktorych powstala dana krawedz
                 "sourceEdges" (list): lista krawedzi z ktorych zlozona jest dana krawedz
-
             Niektore dodatkowe atrybuty krawedzi:
                 "connectedPoi" (string): tylko dla krawedzi nalezacych/ laczacych sie z POI
                 "maxRobots" (int): maksymalna liczba robotow mogaca przebywac na krawedzi z zachowaniem GOTO i nie
@@ -718,7 +716,6 @@ class SupervisorGraphCreator(DataValidator):
         Zwraca liste wezlow na podstawie danej grupy typu POI.
         Parameters:
             given_type (base_node_section_type["..."]): typ grupy POI
-
         Returns:
             ([(string, {"name": string, "pos": (float,float) "type": base_node_type[""], "poiId": string}}]): lista
                 wezlow, ktore naleza do danej grupy
@@ -880,7 +877,6 @@ class SupervisorGraphCreator(DataValidator):
         Parameters:
              source_node_id (string): id wezla z grafu bazowego
              edge_start_node (boolean): informacja czy dany wezel jest wezlem startowym.
-
         Returns:
             (int): id wezla rozbudowanego grafu, jeśli nie istnieje to zwracana wartosc None.
         """
@@ -1050,10 +1046,8 @@ class SupervisorGraphCreator(DataValidator):
     def get_poi_nodes_pos(self, graph_node_id):
         """
         Zwraca wspolrzedne przesunietego wezla dla POI.
-
         Parameters:
             graph_node_id (int): id wezla grafu rozszerzonego, wezel zwiazany z POI
-
         Returns:
             (float,float): wspolrzedne wezla na mapie
         """
@@ -1107,10 +1101,8 @@ class SupervisorGraphCreator(DataValidator):
         Zwraca wspolrzedne wezla skrzyzowania w zaleznosci od id wezla grafu rozszerzonego
             A - punkt startowy krawedzi
             B - punkt koncowy krawedzi
-
         Parameters:
             graph_node_id (int): wspolrzedne wezla grafu rozszerzonego, powinnien byc to wezel skrzyzowania
-
         Returns:
             (float, float): wspolrzedne wezla na mapie
         """
@@ -1225,13 +1217,12 @@ class SupervisorGraphCreator(DataValidator):
                 dist = 0
                 for j in range(len(nodes_pos) - 1):
                     dist = dist + math.hypot(nodes_pos[j + 1][0] - nodes_pos[j][0],
-                                             nodes_pos[j + 1][1] - nodes_pos[j][1])                         
+                                             nodes_pos[j + 1][1] - nodes_pos[j][1])
                 self.graph.edges[i]["maxRobots"] = max(math.floor(dist / ROBOT_LENGTH), 1)
 
     def get_corridor_path(self, edge):
         """
         Wyznacza wspolrzedne sciezki na bazie ktorej wygenerowany zostanie korytarz
-
         Returns:
             (list): Zwraca liste kolejnych wspolrzednych sciezki (float, float)
         """
@@ -1276,10 +1267,8 @@ class SupervisorGraphCreator(DataValidator):
     def get_intersection_corridor_path(self, edge):
         """
         Wyznaczenie sciezki ruchu dla skrzyzowania.
-
         Parameters:
              edge (int, int): krawedz nalezaca do skrzyzowania dla grafu rozszerzonego
-
         Returns:
             (list): lista kolejnych wspolrzednych dla skrzyzowania
         """
@@ -1323,10 +1312,8 @@ class SupervisorGraphCreator(DataValidator):
     def get_corridor_coordinates(self, edge):
         """
         Wyznaczenie wspolrzednych korytarza ruchu.
-
         Parameters:
              edge (int,int): krawedz grafu rozszerzonego
-
         Returns:
             (list): lista kolejnych wspolrzednych (float,float) korytarza
         """
@@ -1362,7 +1349,6 @@ class SupervisorGraphCreator(DataValidator):
             zielony - wezly zrodlowe na podstawie, ktorych generowana jest sciezka
             czerwony - wirtualna sciezka ruchu robota, na podstaie ktorej generowany jest korytarz
             niebieski - korytarz ruchu
-
         Parameters:
             edge (int, int): krawedz grafu rozszerzonego, z zachowaniem GOTO
         """
@@ -1432,7 +1418,6 @@ class SupervisorGraphCreator(DataValidator):
             start_point ((float, float)): wspolrzedne wezla (zrodlowy) poczatkowego odcinka
             end_point ((float, float)): wspolrzedne wezla (zrodlowy) koncowego odcinka
             node_pos ((float, float)): wspolrzedna wezla (grafu rozszerzonego) koncowego
-
         Returns:
             (ROS pose): Pozycja wezla dla robota
                         {"position": {"x": , "y": , "z":}, "orientation": {"x": , "y": , "z": , "w":}
