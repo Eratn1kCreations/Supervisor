@@ -1063,6 +1063,10 @@ class DataAnalyzer:
         csv_data = pd.read_csv(self.file_log_path + "tasks.csv")
         csv_data = csv_data.sort_values(by=['robot_id', 'start_time'])
 
+        colors = {'color1': 'rgb({},{},{})'.format(0, 255, 0),
+                  'color2': 'rgb({},{},{})'.format(0, 0, 255),
+                  'swap': 'rgb({},{},{})'.format(255, 0, 0)}
+
         x_posed = []
         for index, data in csv_data.iterrows():
             x_pos = (data["end_time"] - data["start_time"]) / 2 + data["start_time"]
@@ -1075,6 +1079,8 @@ class DataAnalyzer:
             task_color = "color1" if i % 2 == 0 else "color2"
             start_time = self.today + datetime.timedelta(seconds=data["start_time"])
             end_time = self.today + datetime.timedelta(seconds=data["end_time"])
+            if "swap" in data["task_id"]:
+                task_color = "swap"
             plot_data.append(dict(Task=str(data["robot_id"]), Start=start_time, Finish=end_time,
                                   Resource=task_color))
             i += 1
@@ -1082,7 +1088,7 @@ class DataAnalyzer:
         fig = ff.create_gantt(plot_data, index_col='Resource',
                               title='Plan wykonanych zadan', show_colorbar=True,
                               group_tasks=True,
-                              showgrid_x=True, showgrid_y=True)
+                              showgrid_x=True, showgrid_y=True, colors=colors)
         # add annotations
         robots_y_value = {}
         n = len(csv_data.robot_id.unique()) - 1
