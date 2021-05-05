@@ -471,8 +471,8 @@ class Battery:
     def __init__(self):
         self.max_capacity = 40.0
         self.capacity = 40.0
-        self.drive_usage = 60  # 5.0
-        self.stand_usage = 60  # 3.5
+        self.drive_usage = 5.0
+        self.stand_usage = 3.5
         self.remaining_working_time = 20.0  # [min]
 
     def __str__(self):
