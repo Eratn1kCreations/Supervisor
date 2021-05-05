@@ -1,13 +1,14 @@
 from dispatcher import Battery, Robot, Task, Behaviour
 from datetime import datetime, timedelta
 from graph_creator import base_node_type
-
+import copy
 
 SWAP_TIME = 3.0  # czas [min] wymiany baterii w stacji
-SWAP_TIME_BEFORE_ALERT = 5.0  # czas w [min] przed ktorym powinna rozpoczac sie wymiana baterii zanim przekroczony
-                              # zostanie prog ostrzegawczy
+SWAP_TIME_BEFORE_ALERT = 5.0  # czas w [min] przed ktorym powinna rozpocząć sie wymiana baterii zanim przekroczony
+# zostanie próg ostrzegawczy
 REPLAN_THRESHOLD = 1  # czas w [min], jesli zaplanowana wymiana odbedzie sie pozniej niz podana wartosc
-                      # to nalezy przeplanowac zadania
+# to nalezy przeplanowac zadania
+
 
 class BatterySwapManager:
     """
@@ -36,13 +37,15 @@ class BatterySwapManager:
             pois_raw_data: ([{"id": string, "pose": (float,float)), "type": gc.base_node_type["..."]}, ...]) - lista
                 POI w systemie
         """
-        self.swap_plan = {i: {"new": False, "updated": False, "in_progress": False, "tasks": []} for i in robots}
+        self.swap_plan = {i: {"new": True, "updated": False, "in_progress": False, "tasks": []} for i in robots}
         self.swap_stations = self._get_swap_stations(pois_raw_data)
         self.last_id = 0
         self.swap_station_id = 0
         self.new_task = True
         self.updated_task = False
 
+        self.test_sim_time = datetime.now()  # TODO do wprowadzania aktualnego czasu wyznaczonego w symulacji, domyślnie
+        # ma być to czas systemowy i należy usunąć ten atrybut
         self._init_plan(robots)
 
     def run(self, robots):
@@ -68,7 +71,7 @@ class BatterySwapManager:
                 new_tasks.append(tasks[0])
 
         self.new_task = False
-        return new_tasks
+        return copy.deepcopy(new_tasks)
 
     def get_tasks_to_update(self):
         """
@@ -85,7 +88,7 @@ class BatterySwapManager:
                 update_tasks.append(tasks[0])
 
         self.updated_task = False
-        return update_tasks
+        return copy.deepcopy(update_tasks)
 
     def set_in_progress_task_status(self, robot_id):
         """
@@ -117,7 +120,7 @@ class BatterySwapManager:
         Parameters:
             robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych nalezy przypisac zadania wymiany
         """
-        now = datetime.now()
+        now = self.test_sim_time  # do symulacji TODO przywrocic: datetime.now()
         n = len(self.swap_stations)
         for robot in robots.values():
             swap_station_poi = self.swap_stations[self.swap_station_id]
@@ -136,7 +139,7 @@ class BatterySwapManager:
         Parameters:
             robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych nalezy przypisac zadania wymiany
         """
-        now = datetime.now()
+        now = self.test_sim_time  # do symulacji TODO przywrocic: datetime.now()
         n = len(self.swap_stations)
         robot_ids = [robot.id for robot in robots.values()]
         planned_robot_id = self.swap_plan.keys()
@@ -163,7 +166,7 @@ class BatterySwapManager:
                 # weryfikacja czy konieczne jest przeplanowanie
                 time_to_warn = robot.battery.get_time_to_warn_allert()
                 start_swap_time = (now + timedelta(minutes=time_to_warn) - timedelta(minutes=SWAP_TIME) -
-                                    timedelta(minutes=SWAP_TIME_BEFORE_ALERT)).strftime("%Y-%m-%d %H:%M:%S")
+                                   timedelta(minutes=SWAP_TIME_BEFORE_ALERT)).strftime("%Y-%m-%d %H:%M:%S")
                 self.swap_plan[robot.id]["tasks"][0].start_time = start_swap_time
                 self.swap_plan[robot.id]["updated"] = True
                 self.updated_task = True
@@ -187,7 +190,8 @@ class BatterySwapManager:
                 "start_time": planned_swap_time,
                 "weight": 3,
                 "priority": 3}
-        self.swap_plan[robot_id]["tasks"].append(Task(data))
+        task = Task(data)
+        self.swap_plan[robot_id]["tasks"].append(task)
         self.last_id += 1
 
     def _get_swap_stations(self, pois_raw_data):
@@ -218,7 +222,6 @@ class BatterySwapManager:
         Returns:
             (bool): informacja o koniecznosci przeplanowania wymian
         """
-        now = datetime.now()
         for robot in robots.values():
             if self._is_robot_add_task_required(robot):
                 return True
@@ -232,21 +235,21 @@ class BatterySwapManager:
         ostrzezenie o niskim poziomie naladowania.
 
         Parameters:
-            robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych nalezy przypisac zadania wymiany
+            robot (Robot): slownik robotow do ktorych nalezy przypisac zadania wymiany
 
         Returns:
             (bool): informacja o koniecznosci wykonania aktualizacji planu
         """
-        now = datetime.now()
+        now = self.test_sim_time  # do symulacji TODO przywrocic: datetime.now()
         robot_plan = self.swap_plan[robot.id]["tasks"]
         if len(robot_plan) > 0 and not self.swap_plan[robot.id]["in_progress"]:
             time_to_warn = robot.battery.get_time_to_warn_allert()
             planned_diff = (datetime.strptime(robot_plan[0].start_time,
-                                                  ("%Y-%m-%d %H:%M:%S")) - now)/timedelta(minutes=1)
+                                              "%Y-%m-%d %H:%M:%S") - now)/timedelta(minutes=1)
 
             min_diff_time = planned_diff - SWAP_TIME_BEFORE_ALERT - SWAP_TIME - REPLAN_THRESHOLD
-            if planned_diff > 0 and time_to_warn > 0 and time_to_warn < min_diff_time:
-                    return True
+            if planned_diff > 0 and 0 < time_to_warn < min_diff_time:
+                return True
 
     def _is_robot_add_task_required(self, robot):
         """
@@ -254,7 +257,7 @@ class BatterySwapManager:
         wymiana baterii.
 
         Parameters:
-            robots ({"id": Robot, "id": Robot, ...}): slownik robotow do ktorych nalezy przypisac zadania wymiany
+            robot ({Robot): slownik robotow do ktorych nalezy przypisac zadania wymiany
 
         Returns:
             (bool): informacja o koniecznosci wykonania aktualizacji planu
@@ -263,4 +266,3 @@ class BatterySwapManager:
             return True
         elif len(self.swap_plan[robot.id]["tasks"]) == 0:
             return True
-

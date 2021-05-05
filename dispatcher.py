@@ -479,8 +479,8 @@ class Battery:
     def __init__(self):
         self.max_capacity = 40.0
         self.capacity = 40.0
-        self.drive_usage = 5.0
-        self.stand_usage = 3.5
+        self.drive_usage = 60  # 5.0
+        self.stand_usage = 60  # 3.5
         self.remaining_working_time = 20.0  # [min]
 
     def __str__(self):
@@ -1223,7 +1223,7 @@ class PlanningGraph:
                 raise PlaningGraphError("Input graph wrong structure.")
         return base_poi_edges
 
-    def select_next_task(self, task, swap_task, robot):
+    def select_next_task(self, task, swap_task, robot, test_sim_time):
         """
         Wybiera zadanie dla robota. Jesli robotowi wystarczy energii i nie minal planowany czas wymiany na wykonanie
         zadania to jest mu ono przydzielane, a jesli nie to przydzielane jest zadanie wymiany baterii.
@@ -1232,7 +1232,7 @@ class PlanningGraph:
             task (Task): zadanie dla robota, dojazdy do stanowisk
             swap_task (Task): zadanie wymiany baterii
             robot (Robot): robot dla, ktorego ma byc przydzielone zadanie
-
+            test_sim_time (datetime.now()): TODO czas na potrzeby testów symulacyjnych, domyślnie do usunięcia
         Returns:
             (Task): wybrane zadanie dla robota
         """
@@ -1243,7 +1243,8 @@ class PlanningGraph:
         total_time = drive_time + stand_time
         is_no_battery_critical_allert = robot.battery.is_enough_capacity_before_critical_alert(drive_time, stand_time)
 
-        now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        #now = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S") TODO do przywrócenia po testach
+        now = datetime.strptime(test_sim_time.strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
         swap_time = datetime.strptime(swap_task.start_time, "%Y-%m-%d %H:%M:%S")
 
         time_to_swap = (swap_time - now) / timedelta(minutes=1)
@@ -1329,6 +1330,8 @@ class Dispatcher:
 
         self.unanalyzed_tasks_handler = None
         self.swap_tasks = {robot.id: None for robot in self.robots_plan.get_free_robots()}
+
+        self.test_sim_time = None  # TODO usunąć, czas dodany na potrzeby testów symulacyjnych
 
     def get_plan_all_free_robots(self, graph_data, robots, tasks):
         """
@@ -1422,8 +1425,7 @@ class Dispatcher:
                 self.swap_tasks[task.robot_id] = task
                 tasks_to_remove.append(task.id)
 
-        for i in tasks_to_remove:
-            self.unanalyzed_tasks_handler.remove_tasks_by_id(i)
+        self.unanalyzed_tasks_handler.remove_tasks_by_id(tasks_to_remove)
 
     def set_tasks_doing_by_robots(self):
         """
@@ -1489,7 +1491,7 @@ class Dispatcher:
                         if robot.id in self.swap_tasks:
                             swap_task = self.swap_tasks[robot.id]
                             if type(swap_task) == Task:
-                                task = self.planning_graph.select_next_task(unanalyzed_task, swap_task, robot)
+                                task = self.planning_graph.select_next_task(unanalyzed_task, swap_task, robot, self.test_sim_time)  # TODO do usunięcia self.test_sim_time, tylko do testow symulacyjnych
                         self.robots_plan.set_task(robot.id, task)
                         self.set_task_edge(robot.id)
                         tasks_id_to_remove.append(task.id)
@@ -1542,6 +1544,11 @@ class Dispatcher:
                         elif robot.edge is None and robot.poi_id is not None:
                             poi = robot.poi_id
                         if goal_id == poi:
+                            if robot.id in self.swap_tasks:
+                                swap_task = self.swap_tasks[robot.id]
+                                if type(swap_task) == Task:
+                                    task = self.planning_graph.select_next_task(task, swap_task, robot,
+                                                                                self.test_sim_time)
                             self.robots_plan.set_task(robot_id, task)
                             self.set_task_edge(robot_id)
                             self.unanalyzed_tasks_handler.remove_tasks_by_id([task.id])
@@ -1750,6 +1757,11 @@ class Dispatcher:
                     min_task_time = task_time
 
             # Przypisanie robota do zadania
+            if fastest_robot_id in self.swap_tasks:
+                swap_task = self.swap_tasks[fastest_robot_id]
+                if type(swap_task) == Task:
+                    robot = self.robots_plan.get_robot_by_id(fastest_robot_id)
+                    task = self.planning_graph.select_next_task(task, swap_task, robot, self.test_sim_time)
             self.robots_plan.set_task(fastest_robot_id, task)
             self.set_task_edge(fastest_robot_id)
             robots_id.remove(fastest_robot_id)
