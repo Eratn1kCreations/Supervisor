@@ -1,0 +1,55 @@
+################################################################ Testy dla 1 robota ################################################################
+
+# symulacje kończą się na braku zadań
+OK 1. inicjalizacja robota w kolejce (1) dojazd do kolejki
+OK 2. inicjalizacja robota na parkingu (2) dojazd do parkingu
+OK 3. inicjalizacja robota w POI bez dokowania z węzłem dojazdowo odjazdowym (3) i dojazd do tego samego POI
+OK 4. inicjalizacja robota w POI ładowarki z drogami jednokierunkowymi (4) i dojazd do tego samego POI
+OK 5. inicjalizacja robota w POI z dokowaniem (5) i dojazd do tego samego POI
+OK 6. inicjalizacja robota w POI bez dokowania z drogami jednokierunkowymi (6) i dojazd do tego samego POI
+OK 7. inicjalizacja robota w POI z dokowaniem z drogami jendokierunkowymi (7) i dojazd do tego samego POI
+OK 8. inicjalizacja robota w POI ładowarki połączonym bezpośrednio ze skrzyżowaniem (8) i dojazd do tego samego POI
+OK 9. inicjalizacja robota w POI bez dokowania połączonym bezpośrednio ze skrzyżowaniem  (9) i dojazd do tego samego POI
+OK 10. inicjalizacja robota w POI z dokowaniem połączonym bezpośrednio ze skrzyżowaniem (10) i dojazd do tego samego POI
+
+OK 11. przejazd robotem przez wszystkie typy poi na grafie, inicjalizacja w 1, oddzielne zadania dojazdu do kolejnych poi
+    2->3->4->8->5->6->9->7->10->1
+OK 12. j.w. tylko wszystko w jednym zadaniu
+
+
+Po dołożeniu dodatkowych krawędzi na grafie sprawdzenie czy poi obsługiwane jest w innych trybach
+Dojazd do podanych poi z parkingu (1), konfiguracja z różnymi typami krawędzi łączących (jednokierunkowe, dojazdowo odjazdowe węzły, bezpośrniednie połączenie ze skrzyżowaniem)
+dla poi z dokowaniem
+    - go to -> dock -> wait -> undock (wystarczy, że przejdą wcześniejsze testy (1-8) po zmianach)
+    - go to -> wait
+    - go to
+
+poi bez dokowania
+    - go to -> wait (wystarczy, że przejdą wcześniejsze testy (1-8) po zmianach)
+    - go to
+
+parkingi i kolejki:
+    - go to (wystarczy, że przejdą wcześniejsze testy (1-8) po zmianach)
+
+Dojazd do powyższych węzłów z różnych typów połączeń poi z głownymi drogami i odjazd z powrotem do kolejki (1). Inicjalizacja robota w kolejce (1)
+13.     poi z dokowaniem (7) | go to -> wait | połączenie z krawędziami jednokierunkowymi
+14.     poi z dokowaniem (5) | go to -> wait | połączenie z węzłami dojazdowo-odjazdowymi
+15.     poi z dokowaniem (10) | go to -> wait | połączenie ze skrzyżowaniem
+16.     poi z dokowaniem (7) | go to | połączenie z krawędziami jednokierunkowymi
+17.     poi z dokowaniem (5) | go to | połączenie z węzłami dojazdowo-odjazdowymi
+18.     poi z dokowaniem (10) | go to | połączenie ze skrzyżowaniem
+19.     poi bez dokowania (6) | go to | połączenie z krawędziami jednokierunkowymi
+20.     poi bez dokowania (3) | go to | połączenie z węzłami dojazdowo-odjazdowymi
+21.     poi bez dokowania (9) | go to | połączenie ze skrzyżowaniem
+
+
+22. Przejazd przez wszystkie typy POI w różnych konfiguracjach zaczynając od postoju w kolejce (1)
+A - goto -> dock -> wait -> undock
+B - goto -> wait
+C - goto
+
+#Oddzielne zadania wprowadzone w podanej kolejności
+2(C) -> 3(B) -> 4(Abatex) -> 5(A) -> 6(B) -> 7(A) -> 8(A) -> 9(B) -> 10(A) ->
+     -> 3(C) -> 4(B) -> 5(B) -> 6(C) -> 7(B) -> 8(B) -> 9(C) -> 10(B) ->
+     -> 4(C) -> 5(C) -> 7(C) -> 8(C) -> 10(C) 
+

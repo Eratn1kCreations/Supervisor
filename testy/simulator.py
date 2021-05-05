@@ -1058,6 +1058,7 @@ class DataAnalyzer:
         self.create_graph_edges_no_group()
         self.create_graph_edges_groups()
         self.create_battery_lvl_plot()
+        self.create_dispatcher_statistics()
 
     def create_dispatcher_statistics(self):
         csv_data = pd.read_csv(self.file_log_path + "dispatcher_info.csv")
@@ -1108,7 +1109,7 @@ class DataAnalyzer:
             task_color = "color1" if i % 2 == 0 else "color2"
             start_time = self.today + datetime.timedelta(seconds=data["start_time"])
             end_time = self.today + datetime.timedelta(seconds=data["end_time"])
-            if "swap" in data["task_id"]:
+            if "swap" in str(data["task_id"]):
                 task_color = "swap"
             plot_data.append(dict(Task=str(data["robot_id"]), Start=start_time, Finish=end_time,
                                   Resource=task_color))
