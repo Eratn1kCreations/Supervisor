@@ -166,25 +166,17 @@ def test_get_tasks_to_update():
     ]
     robots = {data["id"]: Robot(data) for data in robots_raw}
     manager = swap.BatterySwapManager(robots, pois_raw)
-    manager.swap_plan["1"]["new"] = False
-    manager.swap_plan["2"]["new"] = True
-    manager.swap_plan["2"]["updated"] = True
-    manager.swap_plan["3"]["new"] = False
+    manager.swap_plan["4"]["new"] = False
     manager.swap_plan["4"]["updated"] = True
     manager.swap_plan["5"]["new"] = False
     manager.swap_plan["5"]["updated"] = True
-    manager.swap_plan["6"]["new"] = False
-    manager.swap_plan["7"]["new"] = False
+    manager.swap_plan["8"]["new"] = False
     manager.swap_plan["8"]["updated"] = True
-    manager.swap_plan["9"]["new"] = False
-    manager.swap_plan["10"]["new"] = False
 
     robot_id_updated_tasks = ["4", "5", "8"]
     updated_tasks = manager.get_tasks_to_update()
 
     roboty = [data.robot_id for data in updated_tasks]
-    print(roboty)
-
     assert len(robot_id_updated_tasks) == len(updated_tasks)
     for i in robot_id_updated_tasks:
         is_task_exist = False
