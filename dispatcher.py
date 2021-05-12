@@ -479,8 +479,8 @@ class Battery:
     def __init__(self):
         self.max_capacity = 40.0
         self.capacity = 40.0
-        self.drive_usage = 60  # 5.0
-        self.stand_usage = 60  # 3.5
+        self.drive_usage = 5.0
+        self.stand_usage = 3.5
         self.remaining_working_time = 20.0  # [min]
 
     def __str__(self):
@@ -571,6 +571,9 @@ class Robot:
         next_task_edge ((int,int)): informuje o kolejnej krawedzi przejscia ktora nalezy wyslac do robota
         end_beh_edge (bool): informuje czy zachowanie po przejsciu krawedzia zostanie ukonczone
         battery (Battery): bateria w robocie
+        swap_time (float): czas wymiany/ładowania baterii w stacji. Dla ładowania -> narastanie poziomu naładowania
+                           baterii w robocie. Dla wymiany -> poziom naładowania w robocie zmienia się skokowo. Dla
+                           kilku baterii będzie to kilka skoków poziomów naładowania. [s]
     """
 
     def __init__(self, robot_data):
@@ -589,6 +592,7 @@ class Robot:
         self.task = None
         self.next_task_edge = None
         self.end_beh_edge = None
+        self.swap_time = 40*60
         self.battery = Battery()
         self.check_planning_status()
 
