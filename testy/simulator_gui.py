@@ -857,11 +857,28 @@ class TaskPanel:
                                "priority": pattern.priority})
         return tasks_data
 
-    def import_tasks_config(self, tasks_data):
+    def import_tasks_config(self, tasks_data, patterns_data, robots_id):
+        """
+        Na podstawie zaimportowanej konfiguracji ustawia dane o zadaniach, szablonach i id dostępnych robotów.
+        Parameters:
+            tasks_data ({"id": string, "behaviours": [Behaviour, Behaviour, ...],
+                  "robotId": string, "start_time": time, "priority": int, "status": STATUS_LIST[status},
+                  "weight": int}): surowe dane dla zadania
+            patterns_data ({"id": string, "behaviours": [Behaviour, Behaviour, ...],
+                  "robotId": string, "start_time": time, "priority": int, "status": STATUS_LIST[status},
+                  "weight": int}): surowe dane dla zadań będących szablonami
+            robots_id (list): id robotów
+        """
         self.tasks = []
         for data in tasks_data:
             self.tasks.append(Task(data))
 
+        self.patterns = []
+        for data in patterns_data:
+            self.patterns.append(Task(data))
+
+        self.robots_id = [None] + robots_id
+        self.task_id = len(tasks_data)
         self.update_tasks_list()
 
 
@@ -1045,12 +1062,16 @@ class TestGuiPanel:
     def import_config(self, widget):
         if widget["name"] == '_property_lock' and len(widget["new"]) == 0:
             data = self.import_config_widget.value[list(self.import_config_widget.value.keys())[0]]["content"]
-            self.robots_creator.import_robots_config(json.loads(data.decode('ascii'))["robots"])
-            self.task_pattern_creator.import_tasks_pattern_config(json.loads(data.decode('ascii'))["tasks_pattern"])
-            self.task_panel.import_tasks_config(json.loads(data.decode('ascii'))["tasks"])
+            tasks = json.loads(data.decode('ascii'))["tasks"]
+            patterns = json.loads(data.decode('ascii'))["tasks_pattern"]
+            robots = json.loads(data.decode('ascii'))["robots"]
+            robots_id = [robot_data["id"] for robot_data in robots]
+            self.robots_creator.import_robots_config(robots)
+            self.task_pattern_creator.import_tasks_pattern_config(patterns)
+            self.task_panel.import_tasks_config(tasks, patterns, robots_id)
 
     def export_config(self, widget):
-        file_path = 'config/' + self.config_file_name_widget.value + '.json'
+        file_path = 'konfiguracje/' + self.config_file_name_widget.value + '.json'
         data = {"robots": self.robots_creator.export_robots_config(),
                 "tasks_pattern": self.task_pattern_creator.export_tasks_pattern_config(),
                 "tasks": self.task_panel.export_tasks_config()}
