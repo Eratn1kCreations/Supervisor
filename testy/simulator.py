@@ -75,22 +75,38 @@ class RobotSim(disp.Robot):
 
     def run(self, step_time):
         """
-        Aktualizuje stan robotów (przejazd krawędzią wynikający ze step_time; rozładowanie baterii)
+        Aktualizuje stan robotów (przejazd krawędzią wynikający ze step_time; rozładowanie baterii). Przejazd krawędzią
+        gdzie behaviour jest batex zajmuje czas zgodny ze swap_time dla danego robota, a nie na sztywno zdefiniowany na
+        krawędzi grafu.
         Args:
             step_time (int): krok symulacji wyrażony w sekundach
         """
-        battery_usage = 0.2 * self.battery.stand_usage + 0.8 * self.battery.drive_usage
-        self.battery.capacity -= (step_time / (60 * 60)) * battery_usage
-        if self.battery.capacity < 0:
+        if self.battery.capacity <= 0:
             self.battery.capacity = 0
-        else:
+        elif self.behaviour.new_battery is None:
+            # Rozładowanie baterii
+            battery_usage = 0.2 * self.battery.stand_usage + 0.8 * self.battery.drive_usage
+            self.battery.capacity -= (step_time / (60 * 60)) * battery_usage
             self.beh_duration = self.beh_duration + step_time
             if self.beh_duration > self.behaviour.beh_allowed_time:
                 self.beh_duration = self.behaviour.beh_allowed_time
             # warunek zakonczenia wykonywania zachowania
             self.is_free = self.beh_duration >= self.behaviour.task_duration
-            if self.is_free and self.behaviour.new_battery is not None:
+            if self.battery.capacity <= 0:
+                self.battery.capacity = 0
+        else:
+            # ładowanie/wymiana baterii, krawędź grafu batex ma inną wartość niż wynika z symulacji
+            if self.swap_time == 0:
+                # natychmiastowa wymiana/ładowanie baterii
                 self.battery = self.behaviour.new_battery
+                self.is_free = True
+            else:
+                # symulacja procesu wymiany ładowania w czasie
+                self.battery.capacity += (step_time/self.swap_time)*self.battery.max_capacity
+                self.battery.capacity = min(self.battery.capacity, self.battery.max_capacity)
+                if self.battery.capacity >= self.battery.max_capacity:
+                    self.battery.capacity = self.battery.max_capacity
+                    self.is_free = True
 
     def set_task(self, behaviour):
         """
