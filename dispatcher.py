@@ -579,7 +579,7 @@ class Robot:
         self.task = None
         self.next_task_edge = None
         self.end_beh_edge = None
-        self.swap_time = 40*60
+        self.swap_time = 3*60
         self.battery = Battery()
         self.check_planning_status()
 
