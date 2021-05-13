@@ -25,7 +25,6 @@ way_type = {
     "oneWay": 1,
     "twoWay": 2,
     "narrowTwoWay": 3,
-
 }
 base_node_section_type = {
     "dockWaitUndock": 1,  # rozbicie na dock, wait, undock, end
@@ -123,7 +122,7 @@ class DataValidator:
     """
     Klasa odpowiada za weryfikacje danych wejsciowych grafu.
     Attributes
-        source_nodes ({"node_id": {"name": string, "pos": (float,float) "type": base_node_type[""], "poiId": string}},
+        source_nodes ({"node_id": {"pos": (float,float) "type": base_node_type[""], "poiId": string}},
             ...}) - slownik z krawedziami grafu
         sorted_source_nodes_list (list) - lista posortowanych wierzcholkow grafu
         source_edges ({"edge_id": {"startNode": string, "endNode": string, "type": way_type[""], "isActive": boolen},
@@ -134,7 +133,7 @@ class DataValidator:
     def __init__(self, source_nodes, source_edges):
         """
         Parameters:
-            source_nodes ({"node_id": {"name": string, "pos": (float,float) "type": base_node_type[""],
+            source_nodes ({"node_id": {"pos": (float,float) "type": base_node_type[""],
                                        "poiId": string}}, ...}) - slownik z krawedziami grafu
             source_edges ({"edge_id": {"startNode": string, "endNode": string, "type": way_type[""],
                                        "isActive": boolen}, ...}) - slownik z krawedziami grafu
@@ -633,7 +632,7 @@ class SupervisorGraphCreator(DataValidator):
         """
         Inicjalizacja i utworzenie właściwego grafu dla supervisora.
         Parameters:
-            source_nodes ({"node_id": {"name": string, "pos": (float,float) "type": base_node_type[""],
+            source_nodes ({"node_id": {"pos": (float,float) "type": base_node_type[""],
                                        "poiId": string}}, ...}) - slownik z krawedziami grafu
             source_edges ({"edge_id": {"startNode": string, "endNode": string, "type": way_type[""],
                                        "isActive": boolen}, ...}) - slownik z krawedziami grafu
@@ -720,7 +719,7 @@ class SupervisorGraphCreator(DataValidator):
             given_type (base_node_section_type["..."]): typ grupy POI
 
         Returns:
-            ([(string, {"name": string, "pos": (float,float) "type": base_node_type[""], "poiId": string}}]): lista
+            ([(string, {"pos": (float,float) "type": base_node_type[""], "poiId": string}}]): lista
                 wezlow, ktore naleza do danej grupy
         """
         nodes = [(i, self.source_nodes[i]) for i in self.sorted_source_nodes_list if
