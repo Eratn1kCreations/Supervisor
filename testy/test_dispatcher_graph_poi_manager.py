@@ -327,7 +327,7 @@ def test_planning_graph_get_max_allowed_robots_using_pois():
     for max_poi_robots in max_robots.values():
         assert max_poi_robots >= 1
 
-    expected_result = {'1': 5, '2': 1, '3': 5, '4': 6, '5': 3, '6': 5, '7': 3}
+    expected_result = {'1': 10, '2': 1, '3': 8, '4': 11, '5': 6, '6': 8, '7': 6}
     # warunek na zwrócenie tych samych kluczy
     assert len(expected_result.keys() - max_robots.keys()) == 0
     assert len(max_robots.keys() - expected_result.keys()) == 0
