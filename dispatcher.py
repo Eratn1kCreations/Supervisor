@@ -1058,28 +1058,30 @@ class PlanningGraph:
             wartoscia maksymalna liczba robotow jaka moze oczekiwac i byc obslugiwana przy stanowisku.
         """
         max_robot_pois = {i: 0 for i in self.pois}
-        connected_edges = [edge for edge in self.graph.edges(data=True) if "connectedPoi" in edge[2]]
-        for edge in connected_edges:
-            poi_id = edge[2]["connectedPoi"]
-            poi_type = self.pois[poi_id]
-            if poi_type == gc.base_node_type["parking"]:
-                # dla POI parkingowych tylko 1 robot
-                max_robot_pois[poi_id] = 1
-            elif poi_type == gc.base_node_type["queue"]:
-                # dla POI z kolejkowaniem tylko tyle robotów ile wynika z krawędzi oczekiwania
-                max_robots = edge[2]["maxRobots"]
-                max_robot_pois[poi_id] = max_robots if max_robots > 0 else 1
-            elif poi_type["nodeSection"] in [gc.base_node_section_type["waitPOI"],
-                                             gc.base_node_section_type["dockWaitUndock"]]:
+        for i in self.pois:
+            poi_edges = [edge for edge in self.graph.edges(data=True) if "connectedPoi" in edge[2]]
+            connected_edges = [edge for edge in poi_edges if edge[2]["connectedPoi"] == i]
+            no_intersection_direct_connection = False
+            for edge in connected_edges:
                 if edge[2]["edgeGroupId"] == 0:
-                    # 1 dla obsługi samego stanowiska + maksymalna liczba robotów na krawędzi związana z danym POI
-                    max_robots = edge[2]["maxRobots"] + 1
-                    max_robot_pois[poi_id] = max_robots if max_robots > 0 else 1
-                else:
-                    # TODO uwzglednienie w obsludze czy poi laczy sie bezposrednio ze skrzyzowaniem czy nie,
-                    #  jesli tak to
-                    # poi obsluzone moze byc tylko prez 1 robota
-                    max_robot_pois[poi_id] = 1
+                    no_intersection_direct_connection = True
+                    break
+            max_robot_pois[connected_edges[0][2]["connectedPoi"]] = 1  # dla parkingów i stanowisk bezpośrednio
+            # połączonych ze skrzyżowaniem
+            for edge in connected_edges:
+                poi_id = edge[2]["connectedPoi"]
+                poi_type = self.pois[poi_id]
+                if poi_type == gc.base_node_type["queue"] and \
+                        self.graph.nodes[edge[0]]["nodeType"] == gc.new_node_type["intersection_out"]:
+                    # dla POI z kolejkowaniem tylko tyle robotów ile wynika z krawędzi oczekiwania
+                    max_robot_pois[poi_id] = max(edge[2]["maxRobots"], 1)
+                    break
+                elif poi_type["nodeSection"] in [gc.base_node_section_type["waitPOI"],
+                                                 gc.base_node_section_type["dockWaitUndock"]]:
+                    if no_intersection_direct_connection and edge[2]["edgeGroupId"] == 0:
+                        # 1 dla obsługi samego stanowiska + maksymalna liczba robotów na krawędzi związana z danym POI
+                        max_robot_pois[poi_id] = edge[2]["maxRobots"] + 1
+                        break
         return max_robot_pois
 
     def get_group_id(self, edge):
