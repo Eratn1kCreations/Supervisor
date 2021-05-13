@@ -327,6 +327,14 @@ def test_planning_graph_get_max_allowed_robots_using_pois():
     for max_poi_robots in max_robots.values():
         assert max_poi_robots >= 1
 
+    expected_result = {'1': 5, '2': 1, '3': 5, '4': 6, '5': 3, '6': 5, '7': 3}
+    # warunek na zwrócenie tych samych kluczy
+    assert len(expected_result.keys() - max_robots.keys()) == 0
+    assert len(max_robots.keys() - expected_result.keys()) == 0
+    # warunek na zwrócenie tych samych wartości
+    for i in expected_result.keys():
+        assert expected_result[i] == max_robots[i]
+
 
 @pytest.mark.planing_graph
 def test_planning_graph_get_robots_in_group_edge_group_0():
