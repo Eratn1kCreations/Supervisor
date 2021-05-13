@@ -18,7 +18,7 @@ from random import randint
 import ipywidgets
 
 SIMULATION_TIME = 5000  # w sekundach
-TIME_INACTIVE = 120  # w sekundach, czas w ktorym polozenie robotow nie zmienilo sie
+TIME_INACTIVE = 120  # w sekundach, czas w ktorym polozenie robotow nie zmienilo sie -> uwzględnić czas ładownaia/wymiany
 TIME_STEP_SUPERVISOR_SIM = 5  # w sekundach
 TIME_STEP_ROBOT_SIM = 1  # w sekundach
 TIME_STEP_DISPLAY_UPDATE = 0  # 0.05 # krok przerwy w wyswietlaniu symulacji, pozniej mozna calkowicie pominac
@@ -620,6 +620,13 @@ class Simulator:
                 self.log_data.save_battery_error(i, discharged, crit_bat, warn_bat)
                 self.log_data.save_battery_state(i, self.robots_sim.robots)
 
+            # Warunek na rozładowanie wszystkich robotów
+            if_all_discharged = True
+            for robot in self.robots_sim.robots.values():
+                if robot.battery.capacity != 0:
+                    if_all_discharged = False
+                    break
+
             if i > SIMULATION_TIME:
                 # przekroczono czas symulacji
                 self.log_data.save_error(i, "Przekroczono czas symulacji")
@@ -634,6 +641,10 @@ class Simulator:
                 # polozenie robotow na krawedziach nie zmienilo sie w czasie TIME_INACTIVE
                 self.log_data.save_error(i, "Przekroczono czas nieaktywnosci aktualizacji symulacji")
                 print("Przekroczono czas nieaktywnosci aktualizacji symulacji")
+                break
+            elif if_all_discharged:
+                self.log_data.save_error(i, "Wszystkie roboty są rozładowane.")
+                print("Wszystkie roboty są rozładowane.")
                 break
 
             i += 1
@@ -677,21 +688,21 @@ class Simulator:
 
             if TURN_ON_ANIMATION_UPDATE:
                 self.gui.update_tasks_table(self.supervisor.tasks)
-                self.gui.top_panel.set_all_tasks_number(self.supervisor.tasks_count)
-                self.gui.top_panel.set_all_swap_tasks_number(self.supervisor.done_swap_tasks)
+            self.gui.top_panel.set_all_tasks_number(self.supervisor.tasks_count)
+            self.gui.top_panel.set_all_swap_tasks_number(self.supervisor.done_swap_tasks)
 
-                n_to_do_tasks = 0
-                n_in_progress_tasks = 0
-                for task in self.supervisor.tasks:
-                    if not task.is_planned_swap():
-                        if task.status == Task.STATUS_LIST["TO_DO"]:
-                            n_to_do_tasks += 1
-                        elif task.status == Task.STATUS_LIST["IN_PROGRESS"]:
-                            n_in_progress_tasks += 1
+            n_to_do_tasks = 0
+            n_in_progress_tasks = 0
+            for task in self.supervisor.tasks:
+                if not task.is_planned_swap():
+                    if task.status == Task.STATUS_LIST["TO_DO"]:
+                        n_to_do_tasks += 1
+                    elif task.status == Task.STATUS_LIST["IN_PROGRESS"]:
+                        n_in_progress_tasks += 1
 
-                self.gui.top_panel.set_all_tasks_to_do_number(n_to_do_tasks)
-                self.gui.top_panel.set_all_tasks_in_progress_number(n_in_progress_tasks)
-                self.gui.top_panel.set_all_tasks_done_number(self.supervisor.done_tasks)
+            self.gui.top_panel.set_all_tasks_to_do_number(n_to_do_tasks)
+            self.gui.top_panel.set_all_tasks_in_progress_number(n_in_progress_tasks)
+            self.gui.top_panel.set_all_tasks_done_number(self.supervisor.done_tasks)
 
     def is_valid_graph(self, sim_time):
         """
@@ -1065,16 +1076,26 @@ class DataAnalyzer:
                                                       layout=ipywidgets.Layout(visibility='hidden'))
 
     def run(self):
-        self.create_tasks_gant()
-        self.create_behaviours_gant()
-        self.create_pois_wait_gant()
-        self.create_pois_gant()
-        self.create_pois_wait_gant_all_robots()
-        self.create_pois_gant_all_robots()
-        self.create_graph_edges_no_group()
-        self.create_graph_edges_groups()
         self.create_battery_lvl_plot()
+        print("Utworzono battery_lvl_plot")
         self.create_dispatcher_statistics()
+        print("Utworzono dispatcher_statistics")
+        self.create_tasks_gant()
+        print("Utworzono tasks_gant")
+        self.create_behaviours_gant()
+        print("Utworzono behaviours_gant")
+        self.create_pois_wait_gant()
+        print("Utworzono pois_wait_gant")
+        self.create_pois_gant()
+        print("Utworzono pois_gant")
+        self.create_pois_wait_gant_all_robots()
+        print("Utworzono pois_wait_gant_all_robots")
+        self.create_pois_gant_all_robots()
+        print("Utworzono pois_gant_all_robots")
+        self.create_graph_edges_no_group()
+        print("Utworzono graph_edges_no_group")
+        self.create_graph_edges_groups()
+        print("Utworzono graph_edges_groups")
 
     def create_dispatcher_statistics(self):
         csv_data = pd.read_csv(self.file_log_path + "dispatcher_info.csv")
