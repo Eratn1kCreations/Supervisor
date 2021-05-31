@@ -13,22 +13,6 @@ ALLOWED_CYCLE_TIME = FULL_BATTERY_WORKING_TIME - 5  # [min] pozwala na dłuższ�
 # późniejszej wymiany, aby ustabilizować wymiany w równych odstępach czasowych
 
 
-def get_robots_id(robots):
-    """
-    Parameters:
-        robots (list({"id": string, "start_swap": float, "swap_time": float})) - lista robotów z chwilą rozpoczęcia
-                        zadania w minutach od aktualnej chwili i czasem trwania wymiany w minutach
-    Returns:
-        (list(string)): lista z unikalnymi id robotów
-    """
-    unique_rid = []
-    for data in robots:
-        if data["id"] not in unique_rid:
-            unique_rid.append(data["id"])
-    unique_rid = sorted(unique_rid)
-    return unique_rid
-
-
 def create_regular_plan(robots):
     """
     Zwraca plan dla regularnego cyklu wymian.
@@ -37,8 +21,8 @@ def create_regular_plan(robots):
             rozładowania baterii w minutach
 
     Returns:
-        (list({"id": string, "start_swap": float, "swap_time": float})) - lista robotów z chwilą rozpoczęcia
-            zadania w minutach od aktualnej chwili i czasem trwania wymiany w minutach
+        (list({"swap_time": float, "time_to_swap": float, "robot_id": string, "active_swap": boolean)) - lista robotów
+         z ułożonym planem kolejnych wymian, "time_to_swap" liczony jest względem updated_time.
     """
     sorted_robots = sorted(copy.deepcopy(robots), key=itemgetter('time_to_discharged'))
     plan = []
@@ -46,7 +30,8 @@ def create_regular_plan(robots):
     cycle_horizon_time = STANDARD_CYCLE_TIME / n
 
     for j in range(n):
-        plan.append({"id": sorted_robots[j]["id"], "start_swap": j * cycle_horizon_time, "swap_time": SWAP_TIME})
+        plan.append({"robot_id": sorted_robots[j]["id"], "time_to_swap": j * cycle_horizon_time,
+                     "swap_time": SWAP_TIME, "active_swap": False})
 
     return plan
 
@@ -60,43 +45,66 @@ def get_log_path(folder_name):
 
 def shifted_plan_if_required(plan):
     """
-    Parameters
-        plan (list({"id": string, "start_swap": float, "swap_time": float})) - lista robotów z chwilą rozpoczęcia
-            zadania w minutach od aktualnej chwili i czasem trwania wymiany w minutach
+    Parameters:
+        plan (list({"swap_time": float, "time_to_swap": float, "robot_id": string, "active_swap": boolean})) - lista
+            robotów z ułożonym planem kolejnych wymian, "time_to_swap" liczony jest względem updated_time.
+
+    Returns:
+        (list({"start_swap": string(%Y-%m-%d %H:%M:%S), "swap_time": float, "time_to_swap": float,
+            "robot_id": string})): zwraca posortowany plan po czasie pozostałym do wymiany od najwcześniejszej do
+            najpóźniejszej
     """
-    sorted_plan = sorted(copy.deepcopy(plan), key=itemgetter('start_swap'))
+    sorted_plan = sorted(copy.deepcopy(plan), key=itemgetter('time_to_swap'))
     n = len(sorted_plan)
     for i in range(n - 1):
-        diff = sorted_plan[-i-1]["start_swap"] - sorted_plan[-i-2]["start_swap"]
-        if diff < SWAP_TIME:
+        diff = sorted_plan[-i-1]["time_to_swap"] - sorted_plan[-i-2]["time_to_swap"]
+        if diff < SWAP_TIME and not sorted_plan[-i - 2]["active_swap"]:
             # wymiany pokrywają się, przesunąć poprzednią wymianę
-            sorted_plan[-i - 2]["start_swap"] = sorted_plan[-i-1]["start_swap"] - SWAP_TIME
+            sorted_plan[-i - 2]["time_to_swap"] = sorted_plan[-i-1]["time_to_swap"] - SWAP_TIME
     return sorted_plan
 
 
 class SwapPlanner:
     """
     Attributes:
-        today (datetime): aktualna data od której generowane są wykresy ganta na podstawie przesunięć czasowych i czasu
-                          trwania wymian
-        plan (list({"id": string, "start_swap": float, "swap_time": float, "robot_id": string)) - lista robotów z chwilą
-                rozpoczęcia zadania w minutach od aktualnej chwili i czasem trwania wymiany w minutach
-        robots (list({"id": string, "time_to_discharged": float})) - dane o robotach, lista posortowanych robotów
-                w kolejności od tego, który najszybciej się rozładuje.
+        start_swaps_time (datetime): data i godzina w której generowany był długookresowy plan. Wykorzystywany również do
+            wygenerowania wykresów ganta na podstawie przesunięć czasowych i czasu trwania wymian.
+        plan (list({"swap_time": float, "time_to_swap": float, "robot_id": string)) - lista robotów z ułożonym planem
+            kolejnych wymian, "time_to_swap" liczony jest względem updated_time.
+        active_swaps (list) - lista aktywnych wymian wykonywanych przez roboty o podanym id
+            ({"id": string, "start_swap": string(%Y-%m-%d %H:%M:%S), "swap_time": float})
+        robots (list({"id": string, "time_to_discharged": float, "swap": dict/None})) - dane o robotach, lista
+            posortowanych robotów w kolejności od tego, który najszybciej się rozładuje.
+        start_cycles (list(dict("Task": string, "Start": datetime, "Finish": datetime, "Resource": int))): lista z
+            kolejnymi czasami rozpoczęcia cyklów. Do wyświetlania na wykresie.
     """
-    def __init__(self, robots):
+    def __init__(self):
+        self.start_swaps_time = datetime.now() # docelowo datetime.now, ale przy korzystaniu z symulatora podmienić czas
+        self.plan = []
+        self.robots = []
+        self.active_swaps = []
+        start = self.start_swaps_time - timedelta(seconds=10)
+        self.start_cycles = [dict(Task="swap tasks", Start=start, Finish=self.start_swaps_time, Resource=2)]
+
+    def create_plan(self, time_horizon, robots):
         """
         Parameters:
-            robots (list({"id": string, "time_to_discharged": float})) - dane o robotach
+            time_horizon (float): horyzont czasowy w minutach w jakim ma być ułożony plan wymian.
+            robots (list({"id": string, "time_to_discharged": float, "swap": dict/None})) - dane o robotach, jeśli
+               wykonywane jest zadanie wymiany to przekazywana jest informacja {"start_swap": string(%Y-%m-%d %H:%M:%S),
+               "swap_time": float}, a jeśli robot nie wykonuje zadania wymiany to None.
         """
-        self.today = datetime.now()  # docelowo datetime.now, ale przy korzystaniu z symulatora podmienić czas
-        self.plan = []
-        self.robots = sorted(robots, key=itemgetter('time_to_discharged'))
+        # self.updated_time = datetime.now()  # docelowo datetime.now, ale przy korzystaniu z symulatora podmienić czas
+        # przed wywołaniem funkcji
+        self.robots = []
+        for robot in sorted(robots, key=itemgetter('time_to_discharged')):
+            self.robots.append(robot)
+            if robot["swap"] is not None:
+                swap_time = datetime.strptime(robot["swap"]["start_swap"], "%Y-%m-%d %H:%M:%S")
+                self.active_swaps.append(dict(id=robot["id"], start_swap=swap_time,
+                                              swap_time=robot["swap"]["swap_time"]))
 
-        start = self.today - timedelta(seconds=10)
-        self.start_cycles = [dict(Task="swap tasks", Start=start, Finish=self.today, Resource=2)]
-
-    def create_plan(self, time_horizon):
+        self.active_swaps = sorted(self.active_swaps, key=itemgetter('start_swap'))
         self.create_plan_v4(time_horizon)
 
     def create_plan_v3(self, time_horizon):
@@ -109,10 +117,6 @@ class SwapPlanner:
 
         Parameters:
             time_horizon (int) - horyzont czasowy planowania w minutach
-
-        Returns:
-            (list({"id": string, "start_swap": float, "swap_time": float})) - lista robotów z chwilą rozpoczęcia
-                zadania w minutach od aktualnej chwili i czasem trwania wymiany w minutach
         """
         self.plan = []
 
@@ -121,15 +125,15 @@ class SwapPlanner:
         # naładowania baterii spada poniżej ostrzegawczego.
         first_swap_time = FULL_BATTERY_WORKING_TIME - STANDARD_CYCLE_TIME
         for plan_data in create_regular_plan(self.robots):
-            plan_data["start_swap"] = first_swap_time + plan_data["start_swap"]
+            plan_data["time_to_swap"] = first_swap_time + plan_data["time_to_swap"]
             #         print(plan_data)
-            regular_plan[plan_data["id"]] = plan_data
+            regular_plan[plan_data["robot_id"]] = plan_data
 
         swap_t = 0
         while True:
             temp_plan = []
             for robot in self.robots:
-                planned_swap_time = regular_plan[robot["id"]]["start_swap"]
+                planned_swap_time = regular_plan[robot["id"]]["time_to_swap"]
                 if planned_swap_time <= robot["time_to_discharged"]:
                     swap_t = planned_swap_time
                 else:
@@ -138,14 +142,14 @@ class SwapPlanner:
                         swap_t = planned_swap_time
                     else:
                         swap_t = new_swap_time
-                temp_plan.append({"id": robot["id"], "start_swap": swap_t, "swap_time": SWAP_TIME})
+                temp_plan.append({"robot_id": robot["id"], "time_to_swap": swap_t, "swap_time": SWAP_TIME})
                 robot["time_to_discharged"] = swap_t + FULL_BATTERY_WORKING_TIME  # po wymianie robot dostaje w pełni
                 # naładowaną baterię
 
             for new_shifted_swap in shifted_plan_if_required(temp_plan):
                 for robot in self.robots:
-                    if robot["id"] == new_shifted_swap["id"]:
-                        robot["start_swap"] = new_shifted_swap["start_swap"]
+                    if robot["id"] == new_shifted_swap["robot_id"]:
+                        robot["time_to_swap"] = new_shifted_swap["time_to_swap"]
                 self.plan.append(new_shifted_swap)
             self.robots = sorted(self.robots, key=itemgetter('time_to_discharged'))
 
@@ -153,18 +157,18 @@ class SwapPlanner:
                 break
             else:
                 # konfiguracja inicjalizacji nowego kroku
-                start_time_regular_cycle = self.robots[0]["start_swap"] + STANDARD_CYCLE_TIME  # wyznaczenie początku
+                start_time_regular_cycle = self.robots[0]["time_to_swap"] + STANDARD_CYCLE_TIME  # wyznaczenie początku
                 # nowego kroku cyklu
-                end = self.today + timedelta(minutes=start_time_regular_cycle)
+                end = self.start_swaps_time + timedelta(minutes=start_time_regular_cycle)
                 start = end - timedelta(seconds=10)
                 self.start_cycles.append(dict(Task="swap tasks", Start=start, Finish=end, Resource=2))
 
                 regular_plan = {}
-                received_cycle_plan = sorted(create_regular_plan(self.robots), key=itemgetter('start_swap'))
+                received_cycle_plan = sorted(create_regular_plan(self.robots), key=itemgetter('time_to_swap'))
                 for plan_data in received_cycle_plan:
-                    plan_data["start_swap"] = start_time_regular_cycle + plan_data["start_swap"]
+                    plan_data["time_to_swap"] = start_time_regular_cycle + plan_data["time_to_swap"]
                     # print(plan_data)
-                    regular_plan[plan_data["id"]] = plan_data
+                    regular_plan[plan_data["robot_id"]] = plan_data
 
     def create_plan_v4(self, time_horizon):
         """
@@ -172,31 +176,20 @@ class SwapPlanner:
         z cyklami przygotowawczymi do wejścia w regularne cykle podane jako parametr. Początek wejścia w regularny
         cykl wymian. Początek wejścia w regularny tryb wymian w chwili, w której nastąpiłaby wymiana w pełni
         naładowanej baterii. wygenerowany plan. Ustawienie planowania względem czasów z planu.
-        Przesuwanie wymian w celu uniknięcia konfliktów wymian.
+        Przesuwanie wymian w celu uniknięcia konfliktów wymian. Generowanie planu z uwzględnieniem aktualnie
+        wykonywanych wymian.
 
         Parameters:
             time_horizon (int) - horyzont czasowy planowania w minutach
-
-        Returns:
-            (list({"id": string, "start_swap": float, "swap_time": float})) - lista robotów z chwilą rozpoczęcia
-                zadania w minutach od aktualnej chwili i czasem trwania wymiany w minutach
         """
         self.plan = []
 
-        regular_plan = {}
-        # wyznaczenie czasu początkowego wynikającego z chwili, w której dla najbardziej rozładowanego robota poziom
-        # naładowania baterii spada poniżej ostrzegawczego.
-        first_swap_time = FULL_BATTERY_WORKING_TIME - STANDARD_CYCLE_TIME
-        for plan_data in create_regular_plan(self.robots):
-            plan_data["start_swap"] = first_swap_time + plan_data["start_swap"]
-            #         print(plan_data)
-            regular_plan[plan_data["id"]] = plan_data
-
+        regular_plan = self.init_swap_tasks()
         swap_t = 0
         while True:
             temp_plan = []
             for robot in self.robots:
-                planned_swap_time = regular_plan[robot["id"]]["start_swap"]
+                planned_swap_time = regular_plan[robot["id"]]["time_to_swap"]
                 if planned_swap_time <= robot["time_to_discharged"]:
                     swap_t = planned_swap_time
                 else:
@@ -205,14 +198,15 @@ class SwapPlanner:
                         swap_t = planned_swap_time
                     else:
                         swap_t = new_swap_time
-                temp_plan.append({"id": robot["id"], "start_swap": swap_t, "swap_time": SWAP_TIME})
+
+                temp_plan.append({"robot_id": robot["id"], "time_to_swap": swap_t, "swap_time": SWAP_TIME,
+                                  "active_swap": regular_plan[robot["id"]]["active_swap"]})
                 robot["time_to_discharged"] = swap_t + FULL_BATTERY_WORKING_TIME  # po wymianie robot dostaje w pełni
                 # naładowaną baterię
-
             for new_shifted_swap in shifted_plan_if_required(temp_plan):
                 for robot in self.robots:
-                    if robot["id"] == new_shifted_swap["id"]:
-                        robot["start_swap"] = new_shifted_swap["start_swap"]
+                    if robot["id"] == new_shifted_swap["robot_id"]:
+                        robot["time_to_swap"] = new_shifted_swap["time_to_swap"]
                 self.plan.append(new_shifted_swap)
             self.robots = sorted(self.robots, key=itemgetter('time_to_discharged'))
 
@@ -220,18 +214,119 @@ class SwapPlanner:
                 break
             else:
                 # konfiguracja inicjalizacji nowego kroku
-                start_time_regular_cycle = self.robots[0]["start_swap"] + STANDARD_CYCLE_TIME  # wyznaczenie początku
+                start_time_regular_cycle = self.robots[0]["time_to_swap"] + STANDARD_CYCLE_TIME  # wyznaczenie początku
                 # nowego kroku cyklu
-                end = self.today + timedelta(minutes=start_time_regular_cycle)
+                end = self.start_swaps_time + timedelta(minutes=start_time_regular_cycle)
                 start = end - timedelta(seconds=10)
                 self.start_cycles.append(dict(Task="swap tasks", Start=start, Finish=end, Resource=2))
 
                 regular_plan = {}
-                received_cycle_plan = sorted(create_regular_plan(self.robots), key=itemgetter('start_swap'))
+                received_cycle_plan = sorted(create_regular_plan(self.robots), key=itemgetter('time_to_swap'))
                 for plan_data in received_cycle_plan:
-                    plan_data["start_swap"] = start_time_regular_cycle + plan_data["start_swap"]
-                    # print(plan_data)
-                    regular_plan[plan_data["id"]] = plan_data
+                    plan_data["time_to_swap"] = start_time_regular_cycle + plan_data["time_to_swap"]
+                    regular_plan[plan_data["robot_id"]] = plan_data
+
+    def init_swap_tasks(self):
+        first_cycle_plan = {}
+        n_swaps = len(self.active_swaps)
+        allowed_working_time = FULL_BATTERY_WORKING_TIME - STANDARD_CYCLE_TIME
+        if n_swaps == 0:
+            # w trakcie przeplanowania zadania wymiany nie są wykonywane
+            for plan_data in create_regular_plan(self.robots):
+                plan_data["time_to_swap"] = allowed_working_time + plan_data["time_to_swap"]
+                first_cycle_plan[plan_data["robot_id"]] = plan_data
+            start = self.start_swaps_time - timedelta(seconds=10)
+            self.start_cycles = [dict(Task="swap tasks", Start=start, Finish=self.start_swaps_time, Resource=2)]
+        else:
+            # co najmniej 1 z robotów jest w trakcie wykonywania zadania wymiany baterii
+            # Wyznaczenie czasu początku cyklu wymian. Czas początku najwcześniej rozpoczętej wymiany jest początkiem
+            # cyklu wymian.
+            self.start_swaps_time = self.active_swaps[0]["start_swap"]
+            start = self.start_swaps_time - timedelta(seconds=10)
+            self.start_cycles.append(dict(Task="swap tasks", Start=start, Finish=self.start_swaps_time, Resource=2))
+            regular_plan = create_regular_plan(self.robots)
+
+            n = len(self.robots)
+            swap_slots = []
+            cycle_horizon_time = STANDARD_CYCLE_TIME / n
+            for i in range(n):
+                end_time_slot = i*cycle_horizon_time
+                swap_slots.append({"robot_id": None, "end_time_slot": end_time_slot,
+                                   "default_start_time": regular_plan[i]["time_to_swap"], "swap_start_time": None,
+                                   "active_swap": False})
+
+            robots_to_cycle_assign = self.get_robots_id()
+            unassigned_active_swaps = copy.deepcopy(self.active_swaps)
+            for active_swap in self.active_swaps:
+                robot_id = active_swap["id"]
+                # przeliczenie do czasu przesunięcia w minutach od startu
+                start_swap = (active_swap["start_swap"].timestamp() - self.start_swaps_time.timestamp())/60
+                for swap_slot in swap_slots:
+                    start_time_slot = swap_slot["end_time_slot"] - cycle_horizon_time
+                    if swap_slot["robot_id"] is None and (start_time_slot <= start_swap < swap_slot["end_time_slot"]):
+                        swap_slot["robot_id"] = robot_id
+                        swap_slot["active_swap"] = True
+                        swap_slot["swap_start_time"] = start_swap
+                        robots_to_cycle_assign.remove(robot_id)
+                        for i in range(len(unassigned_active_swaps)):
+                            swap_to_remove = unassigned_active_swaps[i]
+                            if swap_to_remove["id"] == active_swap["id"]:
+                                unassigned_active_swaps.pop(i)
+                                break
+            # jeśli niektóre roboty nie zostały przydzielone do slotów to przydzielane im są kolejne wolne od
+            # początkowego slotu
+            if len(unassigned_active_swaps) > 0:
+                for active_swap in self.active_swaps:
+                    robot_id = active_swap["id"]
+                    start_swap = (active_swap["start_swap"].timestamp() - self.start_swaps_time.timestamp())/60
+                    for swap_slot in swap_slots:
+                        if swap_slot["robot_id"] is None and robot_id in robots_to_cycle_assign:
+                            swap_slot["robot_id"] = robot_id
+                            swap_slot["active_swap"] = True
+                            swap_slot["swap_start_time"] = start_swap
+                            robots_to_cycle_assign.remove(robot_id)
+
+            # do pozostałych slotów przydzielane sa kolejno roboty od najbardziej do najmniej rozładowanego
+            for robot in self.robots:
+                if robot["swap"] is None:
+                    # przypisać robota do pierwszego wolnego slotu
+                    for swap_slot in swap_slots:
+                        if swap_slot["robot_id"] is None and robot["id"] in robots_to_cycle_assign:
+
+                            swap_slot["robot_id"] = robot["id"]
+                            diff = swap_slot["default_start_time"] - (robot["time_to_discharged"] - allowed_working_time)
+                            if diff > 0:
+                                # do czasu domyślnie zaplanowanej wymiany potrzeba bardziej naładowanej baterii niż
+                                # aktualna w robocie
+                                swap_slot["swap_start_time"] = robot["time_to_discharged"] - allowed_working_time
+                            else:
+                                swap_slot["swap_start_time"] = swap_slot["default_start_time"]
+                            robots_to_cycle_assign.remove(robot["id"])
+
+            for robot in self.robots:
+                for i in range(len(swap_slots)):
+                    if swap_slots[i]["robot_id"] == robot["id"]:
+                        swap_time = SWAP_TIME if robot["swap"] is None else robot["swap"]["swap_time"]
+                        plan_data = {"swap_time": swap_time,
+                                     "time_to_swap": swap_slots[i]["swap_start_time"],
+                                     "robot_id": robot["id"],
+                                     "active_swap": swap_slots[i]["active_swap"]}
+                        first_cycle_plan[robot["id"]] = plan_data
+                        break
+
+            # dodanie do poczatku wyswietlanych cykli chwili najwcześniejszego rozpoczęcia zadania wymiany baterii
+            start = self.start_swaps_time - timedelta(seconds=10)
+            self.start_cycles = [dict(Task="swap tasks", Start=start, Finish=self.start_swaps_time, Resource=2)]
+        return first_cycle_plan
+
+    def get_robots_id(self):
+        """
+        Returns:
+            (list(string)): lista z unikalnymi id robotów
+        """
+        unique_rid = [data["id"] for data in self.robots]
+        unique_rid = sorted(unique_rid)
+        return unique_rid
 
     def is_possible_create_init_cycle(self):
         time_to_swap = 0
@@ -257,19 +352,19 @@ class SwapPlanner:
         Returns:
             (boolean): True - plan prawidłowy, False - plan nieprawidłowy
         """
-        sorted_plan = sorted(copy.deepcopy(self.plan), key=itemgetter('start_swap'))
-        unique_rid = get_robots_id(self.robots)
+        sorted_plan = sorted(copy.deepcopy(self.plan), key=itemgetter('time_to_swap'))
+        unique_rid = self.get_robots_id()
 
         first_swaps = {}
         for rid in unique_rid:
             for swap_task in sorted_plan:
-                if swap_task["id"] == rid:
-                    first_swaps[swap_task["id"]] = swap_task["start_swap"]
+                if swap_task["robot_id"] == rid:
+                    first_swaps[swap_task["robot_id"]] = swap_task["time_to_swap"]
                     break
 
         # 1. weryfikacja czy wymiany nie pokrywają się ze sobą
         for i in range(len(sorted_plan) - 1):
-            if sorted_plan[i + 1]["start_swap"] - sorted_plan[i]["start_swap"] < SWAP_TIME:
+            if sorted_plan[i + 1]["time_to_swap"] - sorted_plan[i]["time_to_swap"] < SWAP_TIME:
                 print("1. Wymiany pokrywają się")
                 print(sorted_plan[i + 1])
                 print(sorted_plan[i])
@@ -278,9 +373,9 @@ class SwapPlanner:
         # 2. Weyfikacja czy dla danego robota dla kolejnych zaplanowanych wymian wystarczy w pełni naładowanej
         # baterii
         for rid in unique_rid:
-            robots_swaps = [swap_task for swap_task in sorted_plan if swap_task["id"] == rid]
+            robots_swaps = [swap_task for swap_task in sorted_plan if swap_task["robot_id"] == rid]
             for i in range(len(robots_swaps) - 1):
-                swap_diff = robots_swaps[i + 1]["start_swap"] - robots_swaps[i]["start_swap"]
+                swap_diff = robots_swaps[i + 1]["time_to_swap"] - robots_swaps[i]["time_to_swap"]
                 if swap_diff > FULL_BATTERY_WORKING_TIME:
                     print("2. Kolejna wymiana baterii nie odbywa się przed końcem czasu pracy na pełnej baterii.")
                     return False
@@ -298,7 +393,7 @@ class SwapPlanner:
         Parameters:
             folder_name (string): nazwa folderu do zapisu loga
         """
-        sorted_plan = sorted(self.plan, key=itemgetter('start_swap'))
+        sorted_plan = sorted(self.plan, key=itemgetter('time_to_swap'))
         colors = {0: 'rgb({},{},{})'.format(255, 0, 0),
                   1: 'rgb({},{},{})'.format(0, 0, 255),
                   2: 'rgb({},{},{})'.format(0, 0, 0)}
@@ -307,7 +402,7 @@ class SwapPlanner:
         i = 0
 
         for data in sorted_plan:
-            start_time = self.today + timedelta(minutes=data["start_swap"])
+            start_time = self.start_swaps_time + timedelta(minutes=data["time_to_swap"])
             end_time = start_time + timedelta(minutes=data["swap_time"])
             plot_data.append(dict(Task="swap tasks", Start=start_time, Finish=end_time, Resource=int(i % 2)))
             i += 1
@@ -319,10 +414,10 @@ class SwapPlanner:
 
         text_font = dict(size=12, color='black')
         for data in sorted_plan:
-            start_time = self.today + timedelta(minutes=data["start_swap"])
+            start_time = self.start_swaps_time + timedelta(minutes=data["time_to_swap"])
             end_time = start_time + timedelta(minutes=data["swap_time"])
             robot_annotation_pose = (end_time - start_time) / 2 + start_time
-            fig['layout']['annotations'] += tuple([dict(x=robot_annotation_pose, y=0, text=str(data["id"]),
+            fig['layout']['annotations'] += tuple([dict(x=robot_annotation_pose, y=0, text=str(data["robot_id"]),
                                                         textangle=0, showarrow=False, font=text_font)])
 
         fig['layout']['yaxis']['title'] = "Wymiany baterii w stacji"
@@ -334,18 +429,18 @@ class SwapPlanner:
         Parameters:
             folder_name (string): nazwa folderu do zapisu loga
         """
-        sorted_plan = sorted(self.plan, key=itemgetter('id'))
+        sorted_plan = sorted(self.plan, key=itemgetter('robot_id'))
         colors = {0: 'rgb({},{},{})'.format(255, 0, 0),
                   1: 'rgb({},{},{})'.format(0, 0, 0)}
 
-        unique_rid = get_robots_id(sorted_plan)
+        unique_rid = self.get_robots_id()
 
         plot_data = []
 
         for data in sorted_plan:
-            start_time = self.today + timedelta(minutes=data["start_swap"])
+            start_time = self.start_swaps_time + timedelta(minutes=data["time_to_swap"])
             end_time = start_time + timedelta(minutes=data["swap_time"])
-            plot_data.append(dict(Task=str(data["id"]), Start=start_time, Finish=end_time,
+            plot_data.append(dict(Task=str(data["robot_id"]), Start=start_time, Finish=end_time,
                                   Resource=0))
         for cycle in self.start_cycles:
             for rid in unique_rid:
@@ -365,10 +460,10 @@ class SwapPlanner:
         Returns:
             (png file): wykres wynikowy
         """
-        sorted_plan = sorted(self.plan, key=itemgetter('start_swap'))
+        sorted_plan = sorted(self.plan, key=itemgetter('time_to_swap'))
         swap_diff = []
         for i in range(len(sorted_plan) - 1):
-            diff = abs(sorted_plan[i + 1]['start_swap'] - sorted_plan[i]['start_swap'])
+            diff = abs(sorted_plan[i + 1]['time_to_swap'] - sorted_plan[i]['time_to_swap'])
             swap_diff.append(diff)
 
         fig, ax = plt.subplots(figsize=(20, 20))
