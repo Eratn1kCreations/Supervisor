@@ -8,6 +8,19 @@ import dispatcher as disp
 # i reszta systemu byla sprawdzana bez tej funkcjonalnosci
 # ------------------------------ Behaviour input data ------------------------------ #
 @pytest.mark.behaviour_data
+def test_behaviour_check_if_method_exist():
+    behaviour = disp.Behaviour({"id": "1", "parameters": {"to": "5", "name": disp.Behaviour.TYPES["goto"]}})
+    assert "get_type" in dir(behaviour)
+    assert "check_if_go_to" in dir(behaviour)
+    assert "get_poi" in dir(behaviour)
+    assert "validate_data" in dir(behaviour)
+    assert "get_info" in dir(behaviour)
+
+    assert "id" in dir(behaviour)
+    assert "parameters" in dir(behaviour)
+
+
+@pytest.mark.behaviour_data
 def test_does_not_raise_on_valid_input():
     param_name = disp.Behaviour.PARAM
     behaviour_goto = {param_name["ID"]: "fa33n52",
@@ -373,6 +386,39 @@ def test_get_poi_behaviour():
 
 
 # ------------------------------ Task input data ------------------------------ #
+@pytest.mark.task_data
+def test_task_check_if_method_exist():
+    task = disp.Task({"id": "7",
+                      "behaviours": [{"id": "1", "parameters": {"to": "5", "name": disp.Behaviour.TYPES["goto"]}},
+                                     {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                                     {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                     {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
+                                     {"id": "5", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}}],
+                      "current_behaviour_index": -1,  # index tablicy nie zachowania
+                      "status": disp.Task.STATUS_LIST["TO_DO"],
+                      "robot": "3",
+                      "start_time": "2018-06-29 07:15:27",
+                      "weight": 2,
+                      "priority": 2
+                      })
+    assert "get_poi_goal" in dir(task)
+    assert "get_current_behaviour" in dir(task)
+    assert "check_if_task_started" in dir(task)
+    assert "validate_input" in dir(task)
+    assert "get_info" in dir(task)  # TODO testy
+    assert "is_planned_swap" in dir(task)
+
+    assert "id" in dir(task)
+    assert "robot_id" in dir(task)
+    assert "start_time" in dir(task)
+    assert "behaviours" in dir(task)
+    assert "current_behaviour_index" in dir(task)
+    assert "status" in dir(task)
+    assert "weight" in dir(task)
+    assert "priority" in dir(task)
+    assert "index" in dir(task)
+
+
 @pytest.mark.task_data
 def test_throws_input_data_exception_raise_on_valid_input():
     raised = False
@@ -1574,7 +1620,90 @@ def test_task_check_get_poi_goal():
     assert task.get_poi_goal() == "1"
 
 
+@pytest.mark.task_methods
+def test_task_is_planned_swap():
+    task_data = {"id": "swap_1",
+                 "behaviours": [{"id": "1", "parameters": {"to": "5", "name": disp.Behaviour.TYPES["goto"]}},
+                                {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                                {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["bat_ex"]}},
+                                {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
+                                {"id": "5", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}}],
+                 "current_behaviour_index": 0,
+                 "status": disp.Task.STATUS_LIST["TO_DO"],
+                 "robot": "4",
+                 "start_time": "2018-06-29 07:23:27",
+                 "weight": 3}
+    task = disp.Task(task_data)
+    assert task.is_planned_swap()
+
+
 # ------------------------------ Task manager methods ------------------------------ #
+@pytest.mark.task_manager_methods
+def test_task_manager_check_if_method_exist():
+    tasks_raw = [{"id": "1",
+                  "behaviours": [{"id": "1", "parameters": {"to": "5", "name": disp.Behaviour.TYPES["goto"]}},
+                                 {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                                 {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                 {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
+                                 {"id": "5", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}}],
+                  "current_behaviour_index": 0,  # index tablicy nie zachowania
+                  "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+                  "robot": "1",
+                  "start_time": "2018-06-29 07:37:27",
+                  "weight": 2,
+                  "priority": 2
+                  },
+                 {"id": "2",
+                  "behaviours": [{"id": "1", "parameters": {"to": "5", "name": disp.Behaviour.TYPES["goto"]}},
+                                 {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                                 {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                 {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
+                                 {"id": "5", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}}],
+                  "current_behaviour_index": 0,  # index tablicy nie zachowania
+                  "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+                  "robot": "2",
+                  "start_time": "2018-06-29 07:27:27",
+                  "weight": 2,
+                  "priority": 2
+                  },
+                 {"id": "3",
+                  "behaviours": [{"id": "1", "parameters": {"to": "5", "name": disp.Behaviour.TYPES["goto"]}},
+                                 {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                                 {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                 {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
+                                 {"id": "5", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}}],
+                  "current_behaviour_index": 0,  # index tablicy nie zachowania
+                  "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+                  "robot": "3",
+                  "start_time": "2018-06-29 07:15:27",
+                  "weight": 3,
+                  "priority": 3
+                  },
+                 {"id": "4",
+                  "behaviours": [{"id": "1", "parameters": {"to": "5", "name": disp.Behaviour.TYPES["goto"]}},
+                                 {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
+                                 {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
+                                 {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}},
+                                 {"id": "5", "parameters": {"to": "1", "name": disp.Behaviour.TYPES["goto"]}}],
+                  "current_behaviour_index": 0,  # index tablicy nie zachowania
+                  "status": disp.Task.STATUS_LIST["IN_PROGRESS"],
+                  "robot": "4",
+                  "start_time": "2018-06-29 07:23:27",
+                  "weight": 2,
+                  "priority": 2
+                  },
+                 ]
+
+    tasks = [disp.Task(data) for data in tasks_raw]
+
+    manager = disp.TasksManager(tasks)
+    assert "set_tasks" in dir(manager)
+    assert "remove_tasks_by_id" in dir(manager)
+    assert "get_all_unasigned_unstarted_tasks" in dir(manager)
+
+    assert "tasks" in dir(manager)
+
+
 @pytest.mark.task_manager_methods
 def test_task_manager_set_tasks_sorted_list():
     tasks_raw = [{"id": "1",
@@ -2877,7 +3006,108 @@ def test_task_manager_get_free_tasks():
         assert expected_result[i].get_info() == free_tasks[i].get_info()
 
 
+# ------------------------------ Battery input data ------------------------------ #
+@pytest.mark.battery
+def test_task_manager_check_if_method_exist():
+    battery = disp.Battery()
+    assert "get_warning_capacity" in dir(battery)
+    assert "get_critical_capacity" in dir(battery)
+    assert "get_time_to_warn_allert" in dir(battery)
+    assert "get_time_to_critical_allert" in dir(battery)
+    assert "is_enough_capacity_before_critical_alert" in dir(battery)
+
+    assert "max_capacity" in dir(battery)
+    assert "capacity" in dir(battery)
+    assert "drive_usage" in dir(battery)
+    assert "stand_usage" in dir(battery)
+    assert "remaining_working_time" in dir(battery)
+
+
+@pytest.mark.battery
+def test_get_warning_capacity():
+    battery = disp.Battery()
+    battery.max_capacity = 40
+    battery.drive_usage = 10
+    battery.remaining_working_time = 60  # [min]
+    assert battery.get_warning_capacity() == 10
+
+
+@pytest.mark.battery
+def test_get_critical_capacity():
+    battery = disp.Battery()
+    battery.max_capacity = 40
+    battery.drive_usage = 10
+    battery.remaining_working_time = 60  # [min]
+    assert battery.get_critical_capacity() == 5
+
+
+@pytest.mark.battery
+def test_get_time_to_warn_allert():
+    battery = disp.Battery()
+    battery.max_capacity = 40
+    battery.capacity = 40
+    battery.drive_usage = 10
+    battery.remaining_working_time = 60  # [min]
+    assert battery.get_time_to_warn_allert() == 180  # [min]
+
+
+@pytest.mark.battery
+def test_get_time_to_critical_allert():
+    battery = disp.Battery()
+    battery.max_capacity = 40
+    battery.capacity = 40
+    battery.drive_usage = 10
+    battery.remaining_working_time = 60  # [min]
+    assert battery.get_time_to_critical_allert() == 210  # [min]
+
+
+@pytest.mark.battery
+def test_is_enough_capacity_before_critical_alert_true():
+    battery = disp.Battery()
+    battery.max_capacity = 40
+    battery.capacity = 40
+    battery.drive_usage = 10
+    battery.stand_usage = 5
+    battery.remaining_working_time = 60  # [min]
+    assert battery.is_enough_capacity_before_critical_alert(180, 20)
+
+
+@pytest.mark.battery
+def test_is_enough_capacity_before_critical_alert_false():
+    battery = disp.Battery()
+    battery.max_capacity = 40
+    battery.capacity = 40
+    battery.drive_usage = 10
+    battery.stand_usage = 5
+    battery.remaining_working_time = 60  # [min]
+    assert battery.is_enough_capacity_before_critical_alert(180, 60) is False
+
+
 # ------------------------------ Robot input data ------------------------------ #
+@pytest.mark.robot
+def test_robot_check_if_method_exist():
+    robot = {"id": "1", "edge": (1, 4), "planningOn": True, "isFree": True, "timeRemaining": 9, "poiId": 1}
+    new_robot = disp.Robot(robot)
+    assert "validate_input" in dir(new_robot)
+    assert "get_current_node" in dir(new_robot)
+    assert "check_planning_status" in dir(new_robot)  # TODO testy
+    assert "get_current_destination_goal" in dir(new_robot)
+    assert "get_info" in dir(new_robot)  # TODO testy
+
+    # atrybuty
+    assert "id" in dir(new_robot)
+    assert "edge" in dir(new_robot)
+    assert "poi_id" in dir(new_robot)
+    assert "planning_on" in dir(new_robot)
+    assert "is_free" in dir(new_robot)
+    assert "time_remaining" in dir(new_robot)
+    assert "task" in dir(new_robot)
+    assert "next_task_edges" in dir(new_robot)
+    assert "end_beh_edge" in dir(new_robot)
+    assert "battery" in dir(new_robot)
+    assert "swap_time" in dir(new_robot)
+
+
 @pytest.mark.skip("input_data_validation")
 @pytest.mark.robot_input_data
 def test_robot_validate_input_throws_exceptions_wrong_data_type():
@@ -3158,6 +3388,35 @@ def test_robot_get_current_node():
 
 # ------------------------------ RobotsPlanManager ------------------------------ #
 @pytest.mark.robots_plan_manager
+def test_robots_plan_manager_check_if_method_exist():
+    robots_raw = [
+        {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "3", "edge": (89, 90), "planningOn": False, "isFree": True, "timeRemaining": 0, "poiId": "1"},
+        {"id": "4", "edge": (85, 86), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
+    ]
+    robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
+    base_poi_edges = {
+        "1": (1, 2),
+        "2": (89, 90),
+        "3": (20, 30)
+    }
+    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
+    assert "set_robots" in dir(plan_manager)
+    assert "get_robot_by_id" in dir(plan_manager)
+    assert "set_task" in dir(plan_manager)
+    assert "check_if_robot_id_exist" in dir(plan_manager)
+    assert "set_next_edges" in dir(plan_manager)
+    assert "set_end_beh_edge" in dir(plan_manager)
+    assert "get_free_robots" in dir(plan_manager)
+    assert "get_busy_robots" in dir(plan_manager)
+    assert "get_robots_id_on_edge" in dir(plan_manager)
+    assert "get_current_robots_goals" in dir(plan_manager)
+
+    assert "robots" in dir(plan_manager)
+
+
+@pytest.mark.robots_plan_manager
 def test_plan_manager_set_robots_only_planning_on():
     robots_raw = [
         {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -3414,7 +3673,7 @@ def test_plan_manager_check_if_robot_exist():
 
 
 @pytest.mark.robots_plan_manager
-def test_plan_manager_set_next_edge():
+def test_plan_manager_set_next_edges():
     robots_raw = [
         {"id": "1", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
         {"id": "2", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -3440,11 +3699,11 @@ def test_plan_manager_set_next_edge():
         "3": (20, 30)
     }
     robot_id = "2"
-    set_edge = (3, 4)
+    set_edges = [(3, 4)]
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task(robot_id, disp.Task(task))
-    plan_manager.set_next_edge(robot_id, set_edge)
-    assert plan_manager.get_robot_by_id(robot_id).next_task_edge == set_edge
+    plan_manager.set_next_edges(robot_id, [set_edges])
+    assert plan_manager.get_robot_by_id(robot_id).next_task_edges == [set_edges]
 
 
 @pytest.mark.robots_plan_manager
@@ -3474,11 +3733,11 @@ def test_plan_manager_set_next_edge_invalid_robot_id():
         "3": (20, 30)
     }
     robot_id = "2"
-    set_edge = (3, 4)
+    set_edge = [(3, 4)]
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task(robot_id, disp.Task(task))
     try:
-        plan_manager.set_next_edge("7", set_edge)
+        plan_manager.set_next_edges("7", [set_edge])
     except disp.TaskManagerError as error:
         assert "Robot on id '{}' doesn't exist".format("7") == str(error)
     else:
@@ -3500,10 +3759,10 @@ def test_plan_manager_set_next_edge_throws_except_when_robot_get_next_edge_but_d
         "3": (20, 30)
     }
     robot_id = "2"
-    set_edge = (3, 4)
+    set_edge = [(3, 4)]
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     try:
-        plan_manager.set_next_edge(robot_id, set_edge)
+        plan_manager.set_next_edges(robot_id, [set_edge])
     except disp.TaskManagerError as error:
         assert "Can not assign next edge when robot {} doesn't have task.".format(robot_id) == str(error)
     else:
@@ -3537,10 +3796,10 @@ def test_plan_manager_set_end_beh_edge():
         "3": (20, 30)
     }
     robot_id = "2"
-    set_edge = (3, 4)
+    set_edge = [(3, 4)]
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
     plan_manager.set_task(robot_id, disp.Task(task))
-    plan_manager.set_next_edge(robot_id, set_edge)
+    plan_manager.set_next_edges(robot_id, set_edge)
     plan_manager.set_end_beh_edge(robot_id, True)
     assert plan_manager.get_robot_by_id(robot_id).end_beh_edge
 
@@ -3781,7 +4040,7 @@ def test_plan_manager_get_busy_robots():
 
 
 @pytest.mark.robots_plan_manager
-def test_plan_manager_get_robots_id_on_given_edges():
+def test_plan_manager_get_robots_id_on_edge():
     robots_raw = [
         {"id": "1", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
         {"id": "2", "edge": (3, 4), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
@@ -3804,66 +4063,9 @@ def test_plan_manager_get_robots_id_on_given_edges():
         "3": (20, 30)
     }
     plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
-    given_edges = [(8, 9), (3, 4), (33, 34)]
-    robots_id = [robot["id"] for robot in robots_raw if robot["edge"] in given_edges]
-    given_robots = plan_manager.get_robots_id_on_given_edges(given_edges)
-    assert len(robots_id) == len(given_robots)
-    for robot in given_robots:
-        assert robot in robots_id
-
-
-@pytest.mark.robots_plan_manager
-def test_plan_manager_get_robots_id_on_future_edges():
-    robots_raw = [
-        {"id": "1", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "2", "edge": (3, 4), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "3", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "4", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "5", "edge": (8, 9), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "6", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "7", "edge": (5, 6), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "8", "edge": (67, 68), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "9", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "10", "edge": (1, 2), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "11", "edge": (15, 16), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "12", "edge": (33, 34), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"},
-        {"id": "13", "edge": (13, 14), "planningOn": True, "isFree": True, "timeRemaining": 0, "poiId": "1"}
-    ]
-    robots = {robot["id"]: disp.Robot(robot) for robot in robots_raw}
-    edges = [(8, 9), (3, 4), (15, 16), (33, 34)]
-    next_edges = []
-    for a in range(len(robots_raw)):
-        next_edges.append(edges[random.randint(0, 3)])
-
-    tasks = []
-    for i in range(len(robots_raw)):
-        tasks.append(disp.Task({"id": str(i),
-                                "behaviours": [{"id": "1", "parameters": {"to": "7",
-                                                                          "name": disp.Behaviour.TYPES["goto"]}},
-                                               {"id": "2", "parameters": {"name": disp.Behaviour.TYPES["dock"]}},
-                                               {"id": "3", "parameters": {"name": disp.Behaviour.TYPES["wait"]}},
-                                               {"id": "4", "parameters": {"name": disp.Behaviour.TYPES["undock"]}}],
-                                "current_behaviour_index": -1,
-                                "status": disp.Task.STATUS_LIST["TO_DO"],
-                                "robot": None,
-                                "start_time": "2018-06-29 07:15:27",
-                                "weight": 5,
-                                "priority": 5
-                                }))
-
-    base_poi_edges = {
-        "1": (1, 2),
-        "2": (89, 90),
-        "3": (20, 30)
-    }
-    plan_manager = disp.RobotsPlanManager(robots, base_poi_edges)
-    for i, robot in enumerate(robots_raw):
-        plan_manager.set_task(robot["id"], tasks[i])
-        plan_manager.set_next_edge(robot["id"], next_edges[i])
-    given_edges = [(3, 4), (33, 34)]
-
-    robots_id = [robot.id for robot in plan_manager.robots.values() if robot.next_task_edge in given_edges]
-    given_robots = plan_manager.get_robots_id_on_future_edges(given_edges)
+    given_edge = (8, 9)
+    robots_id = [robot["id"] for robot in robots_raw if robot["edge"] == given_edge]
+    given_robots = plan_manager.get_robots_id_on_edge(given_edge)
     assert len(robots_id) == len(given_robots)
     for robot in given_robots:
         assert robot in robots_id
