@@ -5,7 +5,7 @@ import dispatcher as disp
 from battery_swap_manager import BatterySwapManager
 import testy.simulator_gui as sim_gui
 import time
-from dispatcher import Task, PlanningGraph, PlaningGraphError
+from dispatcher import Task, PlanningGraph
 import os
 import datetime
 import csv
@@ -18,11 +18,11 @@ from random import randint
 import ipywidgets
 
 SIMULATION_TIME = 5000  # w sekundach
-TIME_INACTIVE = 120  # w sekundach, czas w ktorym polozenie robotow nie zmienilo sie -> uwzględnić czas ładownaia/wymiany
+TIME_INACTIVE = 120  # [s], czas w ktorym polozenie robotow nie zmienilo sie -> uwzględnić czas ładownaia/wymiany
 TIME_STEP_SUPERVISOR_SIM = 5  # w sekundach
 TIME_STEP_ROBOT_SIM = 1  # w sekundach
 TIME_STEP_DISPLAY_UPDATE = 0  # 0.05 # krok przerwy w wyswietlaniu symulacji, pozniej mozna calkowicie pominac
-                              # teraz tylko do wyswietlania i pokazania animacji
+# teraz tylko do wyswietlania i pokazania animacji
 TURN_ON_ANIMATION_UPDATE = True
 
 BATTERY_ERROR_STATE = {
@@ -253,8 +253,9 @@ class Supervisor:
         done_swap_tasks (int): licznik wykonanych zadan wymiany baterii
         flag_task_state_updated (bool): flaga informujaca o zmianie statusu zadania, pojawieniu sie nowego zadania w
                                         systemie
-        plan ({robotId: {"taskId": string, "nextEdge": (string,string)/None, "endBeh": boolean/None},...}) - plan z
-            dispatchera dla robotow
+        plan ({robotId: {"taskId": string, "nextEdges": list((int, int))/None, "endBeh": boolean/None,
+              "is_active": bool, "is_new_command": bool},  ...}) - przyszły plan do wykonania przez roboty. Jeśli
+              zostało zlecone wykonanie zadań to krawędzie te są usuwane z planu
         next_step_set ({robot_id: boolean, ... }): informuje czy dla danego robota dozwolona jest aktualizacja postępu
                                                    zadania. Warunkiem jest wcześniejsze wysłanie krawędzi przejścia na
                                                    grafie.
@@ -280,6 +281,8 @@ class Supervisor:
         self.plan = {}
         self.next_step_set = {robot_id: False for robot_id in robots_state.keys()}
         self.swap_manager = BatterySwapManager(robots_state, pois_raw_data)
+        self.plan = {robot_id:  {"taskId": None, "nextEdges": None, "endBeh": None, "is_active": False,
+                                 "is_new_command": False} for robot_id in robots_state.keys()}
 
         self.add_tasks(tasks)
         self.init_robots_on_edge(graph, robots_state)
@@ -305,19 +308,41 @@ class Supervisor:
                     if swap_task.id == task.id:
                         task.start_time = swap_task.start_time
 
-        dispatcher = disp.Dispatcher(self.graph, robots_state)
-        dispatcher.test_sim_time = real_sim_time
-        init_time = time.time()
-        self.plan = dispatcher.get_plan_all_free_robots(self.graph, robots_state, self.tasks)
-        end_time = time.time()
+        # aktualizacja wykonania planu z uwzględnieniem kolejnych krawędzi przejścia
+        is_replan_required = False
+        for robot_id in self.plan:
+            plan = self.plan[robot_id]
+            if not plan["is_active"]:
+                if self.is_next_edge_available(robot_id):
+                    plan["is_new_command"] = True
+                else:
+                    is_replan_required = True
 
-        for robot_id in self.plan.keys():
-            self.next_step_set[robot_id] = True
-            next_edge = self.plan[robot_id]["nextEdge"]
-            if next_edge is not None:
-                self.update_robots_on_edge(robot_id, next_edge)
+        planing_time = -1
+        if is_replan_required:
+            dispatcher = disp.Dispatcher(self.graph, robots_state)
+            dispatcher.test_sim_time = real_sim_time
+            init_time = time.time()
+            new_plan = dispatcher.get_plan_all_free_robots(self.graph, robots_state, self.tasks)
+            planing_time = time.time() - init_time
+            # aktualizacja planu o nowe krawędzie przejścia
 
-        return end_time - init_time, len(robots_state), len(self.tasks)
+            for robot_id in self.plan:
+                plan = self.plan[robot_id]
+                if not (plan["is_active"] or plan["is_new_command"]) and robot_id in new_plan.keys():
+                    new_plan_edges = new_plan[robot_id]["nextEdges"]
+                    no_next_edges = True
+                    if plan["nextEdges"] is not None:
+                        no_next_edges = len(plan["nextEdges"]) == 0
+                    if new_plan_edges is not None or no_next_edges:
+                        plan["nextEdges"] = new_plan_edges
+                        plan["taskId"] = new_plan[robot_id]["taskId"]
+                        plan["endBeh"] = new_plan[robot_id]["endBeh"]
+                        plan["is_active"] = False
+                        plan["is_new_command"] = True
+                        self.next_step_set[robot_id] = True
+
+        return planing_time, len(robots_state), len(self.tasks)
 
     def print_graph(self, plot_size=(45, 45)):
         """
@@ -398,30 +423,34 @@ class Supervisor:
             robots_state ({"id": RobotSim, "id": RobotSim, ...}): aktualny stan robotow z symulacji
         """
         for robotState in [state for state in robots_state.values() if state.behaviour.task_id is not None]:
-            if robotState.planning_on and robotState.is_free and robotState.end_beh_edge \
-                    and self.next_step_set[robotState.id]:
-                for task in self.tasks:
-                    if task.id == robotState.behaviour.task_id:
-                        self.flag_task_state_updated = True
-                        self.next_step_set[robotState.id] = False
-                        if task.current_behaviour_index == (len(task.behaviours) - 1):
-                            # zakonczono zadanie
-                            task.status = disp.Task.STATUS_LIST["DONE"]
-                            if task.is_planned_swap():
-                                self.swap_manager.set_done_task_status(task.robot_id)
-                        else:
-                            # zakonczono zachowanie, ale nie zadanie
-                            task.current_behaviour_index = task.current_behaviour_index + 1
-                        self.updated_tasks.append(copy.deepcopy(task))
-
-        # usuwanie ukonczonych zadan
-        for task in self.tasks:
-            if task.status == disp.Task.STATUS_LIST["DONE"]:
-                self.tasks.remove(task)
-                if task.is_planned_swap():
-                    self.done_swap_tasks += 1
-                else:
-                    self.done_tasks += 1
+            if robotState.planning_on and robotState.is_free:
+                self.plan[robotState.id]["is_active"] = False
+                next_edges = self.plan[robotState.id]["nextEdges"]
+                if next_edges is not None:
+                    if len(next_edges) > 0:
+                        self.plan[robotState.id]["nextEdges"].pop(0)
+                if robotState.end_beh_edge:
+                    for task in self.tasks:
+                        if task.id == robotState.behaviour.task_id:
+                            self.flag_task_state_updated = True
+                            self.next_step_set[robotState.id] = False
+                            if task.current_behaviour_index == (len(task.behaviours) - 1):
+                                # zakonczono zadanie
+                                task.status = disp.Task.STATUS_LIST["DONE"]
+                                if task.is_planned_swap():
+                                    self.swap_manager.set_done_task_status(task.robot_id)
+                                    self.done_swap_tasks += 1
+                                else:
+                                    self.done_tasks += 1
+                                self.plan[robotState.id]["is_new_command"] = False
+                                self.plan[robotState.id]["nextEdges"] = None
+                                self.plan[robotState.id]["endBeh"] = None
+                                self.tasks.remove(task)
+                            else:
+                                # zakonczono zachowanie, ale nie zadanie
+                                task.current_behaviour_index = task.current_behaviour_index + 1
+                            self.updated_tasks.append(copy.deepcopy(task))
+                            break
 
     def start_tasks(self):
         """
@@ -429,16 +458,35 @@ class Supervisor:
         """
         for robot_id in self.plan:
             plan = self.plan[robot_id]
-            for task in self.tasks:
-                if plan["taskId"] == task.id and task.current_behaviour_index == -1:
-                    self.flag_task_state_updated = True
-                    task.robot_id = robot_id
-                    task.status = disp.Task.STATUS_LIST["IN_PROGRESS"]
-                    task.current_behaviour_index = 0
-                    self.updated_tasks.append(copy.deepcopy(task))
-                    if task.is_planned_swap():
-                        self.swap_manager.set_in_progress_task_status(task.robot_id)
-                    break
+            if not plan["is_active"] and self.is_next_edge_available(robot_id):
+                for task in self.tasks:
+                    if plan["taskId"] == task.id and task.current_behaviour_index == -1:
+                        self.flag_task_state_updated = True
+                        task.robot_id = robot_id
+                        task.status = disp.Task.STATUS_LIST["IN_PROGRESS"]
+                        task.current_behaviour_index = 0
+                        self.updated_tasks.append(copy.deepcopy(task))
+                        if task.is_planned_swap():
+                            self.swap_manager.set_in_progress_task_status(task.robot_id)
+                        plan["is_new_command"] = True
+                        break
+
+    def is_next_edge_available(self, robot_id):
+        """
+        Weryfikuje czy w aktualnie wykonywanym planie dla robota o danym id przypisane są kolejne krawędzie przejścia
+        do wykonania.
+
+        Parameters:
+            robot_id (string): id robota
+
+        Returns:
+            (boolean): True - krawędź dostępna, False - krawędź niedostępna
+        """
+        is_next_edge = False
+        if self.plan[robot_id]["nextEdges"] is not None:
+            if len(self.plan[robot_id]["nextEdges"]) > 0:
+                is_next_edge = True
+        return is_next_edge
 
     def get_robots_command(self):
         """
@@ -450,25 +498,31 @@ class Supervisor:
         new_tasks = []
         robots_with_tasks = []
         for i in self.plan.keys():
-            robot_plan = copy.deepcopy(self.plan[i])
-            robot_behaviour = RobotBehaviour()
-            robot_behaviour.robot_id = i
-            robot_behaviour.task_id = robot_plan["taskId"]
-            robot_behaviour.task_duration = self.graph.graph.edges[robot_plan["nextEdge"]]["weight"]
-            robot_behaviour.beh_allowed_time = self.get_allowed_time(i, robot_plan["nextEdge"])
-            robot_behaviour.next_edge = robot_plan["nextEdge"]
-            robot_behaviour.end_beh = robot_plan["endBeh"]
-            task = self.get_task_by_id(robot_plan["taskId"])
-            if task.is_planned_swap() and \
-                    self.graph.graph.edges[robot_plan["nextEdge"]]["behaviour"] == disp.Behaviour.TYPES["bat_ex"]:
-                robot_behaviour.new_battery = disp.Battery()
-            new_tasks.append(robot_behaviour)
-            robots_with_tasks.append(i)
+            robot_plan = self.plan[i]
+            if robot_plan["is_new_command"]:
+                next_edge = robot_plan["nextEdges"][0]
+                self.update_robots_on_edge(i, next_edge)
+                robot_behaviour = RobotBehaviour()
+                robot_behaviour.robot_id = i
+                robot_behaviour.task_id = robot_plan["taskId"]
+                robot_behaviour.task_duration = self.graph.graph.edges[next_edge]["weight"]
+                robot_behaviour.beh_allowed_time = self.get_allowed_time(i, next_edge)
+                robot_behaviour.next_edge = next_edge
+                robot_behaviour.end_beh = robot_plan["endBeh"]
+                task = self.get_task_by_id(robot_plan["taskId"])
+                if task.is_planned_swap() and \
+                        self.graph.graph.edges[next_edge]["behaviour"] == disp.Behaviour.TYPES["bat_ex"]:
+                    robot_behaviour.new_battery = disp.Battery()
+                new_tasks.append(robot_behaviour)
+                robots_with_tasks.append(i)
+                robot_plan["is_new_command"] = False
+                robot_plan["is_active"] = True
 
         updated_tasks = []
         for edge in self.graph.graph.edges(data=True):
             for robot_id in edge[2]["robots"]:
-                if robot_id not in robots_with_tasks:
+                if robot_id not in robots_with_tasks and self.plan[robot_id]["is_active"]:
+                    self.update_robots_on_edge(robot_id, edge)
                     robot_behaviour = RobotBehaviour()
                     robot_behaviour.robot_id = robot_id
                     robot_behaviour.beh_allowed_time = self.get_allowed_time(robot_id, (edge[0], edge[1]))
@@ -713,16 +767,17 @@ class Simulator:
             (boolean): True, gdy graf poprawny, False - na krawędzi lub w grupie więcej robotów niż być powinno
         """
         new_graph = PlanningGraph(self.supervisor.graph)
-        for edge in new_graph.graph.edges(data=True):
+        for edge in new_graph.graph.graph.edges(data=True):
             group_id = edge[2]["edgeGroupId"]
             if group_id == 0:
                 if len(edge[2]["robots"]) > edge[2]["maxRobots"]:
                     return False
             else:
-                try:
-                    new_graph.get_robots_in_group_edge((edge[0], edge[1]))
-                except PlaningGraphError as error:
-                    self.log_data.save_error(sim_time, str(error))
+                robots = []
+                for group_edge in new_graph.get_edges_by_group(group_id):
+                    robots += new_graph.get_robots_on_edge(group_edge)
+                if len(robots) > 1:
+                    self.log_data.save_error(sim_time, "Do grupy krawędzi przypisanych jest więcej niż 1 robot.")
                     return False
         return True
 
