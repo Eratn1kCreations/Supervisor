@@ -50,6 +50,7 @@ base_node_type = {
     "queue": {"id": 12, "nodeSection": base_node_section_type["noChanges"]},  # queue
     "normal": {"id": 13, "nodeSection": base_node_section_type["normal"]},  # normal
     "intersection": {"id": 14, "nodeSection": base_node_section_type["intersection"]},  # intersection
+    "charger2": {"id": 15, "nodeSection": base_node_section_type["waitPOI"]}  # reczna wymiana baterii
 }
 new_node_type = {
     # type - służy do przyszłego złączenia krawędzi grafu w odpowiedniej kolejności
@@ -780,8 +781,13 @@ class SupervisorGraphCreator(DataValidator):
             return_end_node = self.graph_node_id
             self.graph.add_node(self.graph_node_id, nodeType=new_node_type["wait"], sourceNode=node_id,
                                 color=node_color["wait"], poiId=no_dock_node[1]["poiId"])
+
+            behaviour = Behaviour.TYPES["wait"]
+            if self.source_nodes[node_id]["type"] == base_node_type["charger2"]:
+                behaviour = Behaviour.TYPES["bat_ex"]
+
             self.graph.add_edge(self.graph_node_id, self.graph_node_id + 1, id=self.edge_id, weight=0,
-                                behaviour=Behaviour.TYPES["wait"], robots=[],
+                                behaviour=behaviour, robots=[],
                                 edgeGroupId=self.group_id_switcher[node_id], sourceNodes=[node_id], sourceEdges=[0])
             self.graph_node_id = self.graph_node_id + 1
 
