@@ -274,7 +274,7 @@ def test_dispatcher_set_tasks_doing_by_robots_next_goal_free():
     dispatcher.set_tasks(tasks)
     dispatcher.set_tasks_doing_by_robots()
     expected_assign = {"4": "3", "3": "2"}  # robot_id: task id
-    for robot in dispatcher.robots_plan.robots.values():
+    for robot in dispatcher.robots_plan.robots_manager.values():
         if robot.id in expected_assign:
             assert expected_assign[robot.id] == robot.task.id
 
@@ -752,7 +752,7 @@ def test_dispatcher_set_tasks_doing_by_robots_waiting_departure_poi_5():
     dispatcher.set_tasks_doing_by_robots()
     robots = {"1": {"edge": [(10, 11)], "end_beh": True},
               "2": {"edge": None, "end_beh": None}}
-    for robot in dispatcher.robots_plan.robots.values():
+    for robot in dispatcher.robots_plan.robots_manager.values():
         assert robot.id == robot.task.id
         assert robot.next_task_edges == robots[robot.id]["edge"]
         assert robot.end_beh_edge == robots[robot.id]["end_beh"]
@@ -798,7 +798,7 @@ def test_dispatcher_set_tasks_doing_by_robots_waiting_departure_poi_5_intersecti
     dispatcher.set_tasks_doing_by_robots()
     robots = {"1": {"edge": [(81, 44), (44, 45)], "end_beh": False},
               "2": {"edge": None, "end_beh": None}}
-    for robot in dispatcher.robots_plan.robots.values():
+    for robot in dispatcher.robots_plan.robots_manager.values():
         assert robot.id == robot.task.id
         assert robot.next_task_edges == robots[robot.id]["edge"]
         assert robot.end_beh_edge == robots[robot.id]["end_beh"]
@@ -841,7 +841,7 @@ def test_dispatcher_set_task_assigned_to_robots():
     dispatcher.set_task_assigned_to_robots()
     robots = {"1": {"edge": [(19, 42)], "end_beh": False, "task": "2"},
               "2": {"edge": [(19, 42)], "end_beh": False, "task": "1"}}
-    for robot in dispatcher.robots_plan.robots.values():
+    for robot in dispatcher.robots_plan.robots_manager.values():
         assert robot.task.id == robots[robot.id]["task"]
         assert robot.next_task_edges == robots[robot.id]["edge"]
         assert robot.end_beh_edge == robots[robot.id]["end_beh"]
@@ -893,7 +893,7 @@ def test_dispatcher_set_task_assigned_to_robots():
     dispatcher.set_task_assigned_to_robots()
     robots = {"1": {"edge": [(19, 42)], "end_beh": False, "task": "2"},
               "2": {"edge": [(19, 42)], "end_beh": False, "task": "1"}}
-    for robot in dispatcher.robots_plan.robots.values():
+    for robot in dispatcher.robots_plan.robots_manager.values():
         assert robot.task.id == robots[robot.id]["task"]
         assert robot.next_task_edges == robots[robot.id]["edge"]
         assert robot.end_beh_edge == robots[robot.id]["end_beh"]
@@ -948,7 +948,7 @@ def test_dispatcher_set_doing_and_assigned_task_to_robots():
     dispatcher.set_task_assigned_to_robots()
     robots = {"1": {"edge": [(19, 42)], "end_beh": False, "task": "2"},
               "2": {"edge": [(19, 42)], "end_beh": False, "task": "3"}}
-    for robot in dispatcher.robots_plan.robots.values():
+    for robot in dispatcher.robots_plan.robots_manager.values():
         assert robot.task.id == robots[robot.id]["task"]
         assert robot.next_task_edges == robots[robot.id]["edge"]
         assert robot.end_beh_edge == robots[robot.id]["end_beh"]
@@ -1427,7 +1427,7 @@ def test_dispatcher_set_task_edge_simple_example():
         robots[robot.id] = robot
     dispatcher = disp.Dispatcher(get_graph(robots_raw), robots)
     dispatcher.set_task_edge("1")
-    assert dispatcher.robots_plan.robots["1"].next_task_edges == [(8, 18)]
+    assert dispatcher.robots_plan.robots_manager["1"].next_task_edges == [(8, 18)]
 
 
 @pytest.mark.dispatcher
@@ -1470,9 +1470,9 @@ def test_dispatcher_set_task_edge_simple_example_intersection_blocked():
     dispatcher = disp.Dispatcher(get_graph(robots_raw), [])
     expected_result = {"1": [(38, 39)], "2": None}  # robot_id: edge
     for i in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[i] = robots[i]
+        dispatcher.robots_plan.robots_manager[i] = robots[i]
         dispatcher.set_task_edge(i)
-        robot = dispatcher.robots_plan.robots[i]
+        robot = dispatcher.robots_plan.robots_manager[i]
         assert robot.next_task_edges == expected_result[i]
 
 
@@ -1575,9 +1575,9 @@ def test_dispatcher_set_task_edge_simple_example_poi_7_waiting_edge_blocked_1():
     # robot "6" znajdujacy sie po zjezdzie ze skrzyzowania nie moze jechac dalej, bo aktualnie maksymalna liczba robotow
     # znajduje sie na krawedzi
     for r_id in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[r_id] = robots[r_id]
+        dispatcher.robots_plan.robots_manager[r_id] = robots[r_id]
         dispatcher.set_task_edge(r_id)
-        robot = dispatcher.robots_plan.robots[r_id]
+        robot = dispatcher.robots_plan.robots_manager[r_id]
         assert robot.next_task_edges == expected_result[r_id]
 
 
@@ -1669,9 +1669,9 @@ def test_dispatcher_set_task_edge_simple_example_poi_7_waiting_edge_blocked_2():
     # robot "6" znajdujacy sie po zjezdzie ze skrzyzowania nie moze jechac dalej, bo aktualnie maksymalna liczba robotow
     # znajduje sie na krawedzi
     for i in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[i] = robots[i]
+        dispatcher.robots_plan.robots_manager[i] = robots[i]
         dispatcher.set_task_edge(i)
-        robot = dispatcher.robots_plan.robots[i]
+        robot = dispatcher.robots_plan.robots_manager[i]
         assert robot.next_task_edges == expected_result[i]
 
 
@@ -1770,10 +1770,10 @@ def test_dispatcher_set_task_edge_simple_example_blocked_goal_7():
     dispatcher = disp.Dispatcher(get_graph(robots_raw), [])
     expected_result = {"1": None, "2": None, "3": None, "4": [(33, 23)], "5": None, "6": None, "7": None}
     for i in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[i] = robots[i]
+        dispatcher.robots_plan.robots_manager[i] = robots[i]
         if i != "1":
             dispatcher.set_task_edge(i)
-        robot = dispatcher.robots_plan.robots[i]
+        robot = dispatcher.robots_plan.robots_manager[i]
         assert robot.next_task_edges == expected_result[i]
 
 
@@ -1813,8 +1813,8 @@ def test_dispatcher_set_task_edge_blocked_goal_waiting_departure_nodeintersectio
     expected_result = {"1": [(58, 29), (29, 13)], "2": None}
     # robot_id: edge
     for i in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[i] = robots[i]
-        robot = dispatcher.robots_plan.robots[i]
+        dispatcher.robots_plan.robots_manager[i] = robots[i]
+        robot = dispatcher.robots_plan.robots_manager[i]
         dispatcher.set_task_edge(i)
         assert robot.next_task_edges == expected_result[i]
 
@@ -1854,8 +1854,8 @@ def test_dispatcher_set_task_edge_blocked_goal_waiting_departure_node_before_poi
     expected_result = {"1": [(13, 14)], "2": None}
     # robot_id: edge
     for i in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[i] = robots[i]
-        robot = dispatcher.robots_plan.robots[i]
+        dispatcher.robots_plan.robots_manager[i] = robots[i]
+        robot = dispatcher.robots_plan.robots_manager[i]
         dispatcher.set_task_edge(i)
         assert robot.next_task_edges == expected_result[i]
 
@@ -1896,8 +1896,8 @@ def test_dispatcher_set_task_edge_blocked_goal_waiting_departure_node_in_poi():
     expected_result = {"1": [(14, 30)], "2": None}
     # robot_id: edge
     for i in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[i] = robots[i]
-        robot = dispatcher.robots_plan.robots[i]
+        dispatcher.robots_plan.robots_manager[i] = robots[i]
+        robot = dispatcher.robots_plan.robots_manager[i]
         dispatcher.set_task_edge(i)
         assert robot.next_task_edges == expected_result[i]
 
@@ -1938,8 +1938,8 @@ def test_dispatcher_set_task_edge_blocked_goal_waiting_departure_node_in_poi_2_r
     expected_result = {"1": [(58, 29), (29, 13)], "2": None}
     # robot_id: edge
     for i in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[i] = robots[i]
-        robot = dispatcher.robots_plan.robots[i]
+        dispatcher.robots_plan.robots_manager[i] = robots[i]
+        robot = dispatcher.robots_plan.robots_manager[i]
         dispatcher.set_task_edge(i)
         assert robot.next_task_edges == expected_result[i]
 
@@ -1980,8 +1980,8 @@ def test_dispatcher_set_task_edge_blocked_goal_waiting_departure_node_in_poi_2_r
     expected_result = {"1": [(29, 13)], "2": None}
     # robot_id: edge
     for i in [robot["id"] for robot in robots_raw]:
-        dispatcher.robots_plan.robots[i] = robots[i]
-        robot = dispatcher.robots_plan.robots[i]
+        dispatcher.robots_plan.robots_manager[i] = robots[i]
+        robot = dispatcher.robots_plan.robots_manager[i]
         dispatcher.set_task_edge(i)
         assert robot.next_task_edges == expected_result[i]
 
@@ -2249,7 +2249,7 @@ def test_dispatcher_assign_tasks_to_robots():
     dispatcher.assign_tasks_to_robots([tasks[3], tasks[7], tasks[0]], ["4", "8", "2"])  # poi zadania: 7 3 7 robot:4 5 6
     assert len(dispatcher.unanalyzed_tasks_handler.tasks) == len(tasks_raw) - 3
     result = {"4": "2", "8": "4", "1": "8"}  # task id: robot id
-    robots_with_tasks = [robot for robot in dispatcher.robots_plan.robots.values() if robot.task is not None]
+    robots_with_tasks = [robot for robot in dispatcher.robots_plan.robots_manager.values() if robot.task is not None]
     for robot in robots_with_tasks:
         if robot.task.id in result:
             assert result[robot.task.id] == robot.id
@@ -2646,11 +2646,11 @@ def test_dispatcher_assigned_tasks_swap_battery():
     dispatcher.swap_tasks.pop("3")
     dispatcher.set_task_assigned_to_robots()
 
-    assert dispatcher.robots_plan.robots["1"].task.id == tasks[0].id
-    assert dispatcher.robots_plan.robots["2"].task.id == tasks[1].id
-    assert dispatcher.robots_plan.robots["3"].task.id == tasks[2].id
-    assert dispatcher.robots_plan.robots["4"].task.id == tasks[6].id
-    assert dispatcher.robots_plan.robots["5"].task.id == tasks[7].id
+    assert dispatcher.robots_plan.robots_manager["1"].task.id == tasks[0].id
+    assert dispatcher.robots_plan.robots_manager["2"].task.id == tasks[1].id
+    assert dispatcher.robots_plan.robots_manager["3"].task.id == tasks[2].id
+    assert dispatcher.robots_plan.robots_manager["4"].task.id == tasks[6].id
+    assert dispatcher.robots_plan.robots_manager["5"].task.id == tasks[7].id
 
 
 @pytest.mark.dispatcher
@@ -2746,9 +2746,9 @@ def test_dispatcher_assigned_tasks_in_progress_swap_task():
     dispatcher.init_robots_plan(robots)
     dispatcher.set_tasks_doing_by_robots()
 
-    assert dispatcher.robots_plan.robots["1"].task is None
-    assert dispatcher.robots_plan.robots["4"].task.id == tasks[4].id
-    assert dispatcher.robots_plan.robots["5"].task is None
+    assert dispatcher.robots_plan.robots_manager["1"].task is None
+    assert dispatcher.robots_plan.robots_manager["4"].task.id == tasks[4].id
+    assert dispatcher.robots_plan.robots_manager["5"].task is None
 
 
 @pytest.mark.dispatcher

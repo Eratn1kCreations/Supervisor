@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import copy
 import dispatcher as disp
-from battery_swap_manager import BatterySwapManager
+from swap_manager import SwapStationsManager
 import testy.simulator_gui as sim_gui
 import time
 from dispatcher import Task, PlanningGraph
@@ -259,7 +259,7 @@ class Supervisor:
         next_step_set ({robot_id: boolean, ... }): informuje czy dla danego robota dozwolona jest aktualizacja postępu
                                                    zadania. Warunkiem jest wcześniejsze wysłanie krawędzi przejścia na
                                                    grafie.
-        swap_manager (BatterySwapManager): odpowiada za monitorowanie stanu naładowania robotów, generowanie planu i
+        swap_manager (SwapStationsManager): odpowiada za monitorowanie stanu naładowania robotów, generowanie planu i
                                            zadań dla robotów
     """
     def __init__(self, graph, tasks, robots_state, pois_raw_data):
@@ -280,7 +280,7 @@ class Supervisor:
         self.flag_task_state_updated = True
         self.plan = {}
         self.next_step_set = {robot_id: False for robot_id in robots_state.keys()}
-        self.swap_manager = BatterySwapManager(robots_state, pois_raw_data)
+        self.swap_manager = SwapStationsManager(pois_raw_data)
         self.plan = {robot_id:  {"taskId": None, "nextEdges": None, "endBeh": None, "is_active": False,
                                  "is_new_command": False} for robot_id in robots_state.keys()}
 
@@ -296,7 +296,7 @@ class Supervisor:
             ([float, int, int]): czas planowania w sekundach, liczba robotów, liczba zadań
         """
         # analiza stanu baterii w robotach i planu wymian
-        self.swap_manager.test_sim_time = real_sim_time
+        self.swap_manager.ref_time = real_sim_time
         self.swap_manager.run(robots_state)
 
         if self.swap_manager.new_task:
@@ -646,7 +646,7 @@ class Simulator:
             graph (SupervisorGraphCreator): właściwy graf po którym poruszają się roboty
         """
         tasks = self.gui.task_panel.tasks
-        self.robots_sim = RobotsSimulator(self.gui.robots_creator.robots, TIME_STEP_ROBOT_SIM)
+        self.robots_sim = RobotsSimulator(self.gui.robots_creator.robots_manager, TIME_STEP_ROBOT_SIM)
         self.supervisor = Supervisor(graph, tasks, self.robots_sim.robots, self.pois_data)
         self.log_data.set_robots(self.robots_sim.robots)
         self.log_data.save_graph(graph.graph)
@@ -672,11 +672,11 @@ class Simulator:
                     self.gui.top_panel.set_battery_warning_robots(len(warn_bat))
 
                 self.log_data.save_battery_error(i, discharged, crit_bat, warn_bat)
-                self.log_data.save_battery_state(i, self.robots_sim.robots)
+                self.log_data.save_battery_state(i, self.robots_sim.robots_manager)
 
             # Warunek na rozładowanie wszystkich robotów
             if_all_discharged = True
-            for robot in self.robots_sim.robots.values():
+            for robot in self.robots_sim.robots_manager.values():
                 if robot.battery.capacity != 0:
                     if_all_discharged = False
                     break
@@ -709,7 +709,7 @@ class Simulator:
         Parameters:
             sim_time (int): czas symulacji w sekundach
         """
-        robots_state = self.robots_sim.robots  # aktualny stan robotow po inicjalizacji
+        robots_state = self.robots_sim.robots_manager  # aktualny stan robotow po inicjalizacji
 
         self.supervisor.update_data(robots_state)
         new_time = self.start_time + datetime.timedelta(seconds=sim_time)
@@ -737,7 +737,7 @@ class Simulator:
         # Aktualizacja stanu zadan
         if self.supervisor.flag_task_state_updated:
             self.supervisor.flag_task_state_updated = False
-            self.log_data.save_data(sim_time, self.supervisor, self.robots_sim.robots)
+            self.log_data.save_data(sim_time, self.supervisor, self.robots_sim.robots_manager)
             self.supervisor.updated_tasks = []
 
             if TURN_ON_ANIMATION_UPDATE:
