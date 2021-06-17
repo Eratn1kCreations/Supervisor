@@ -540,6 +540,13 @@ class Battery:
         else:
             return -1
 
+    def get_time_to_discharged(self):
+        """
+        Returns:
+             (float): Zwraca czas w minutach do rozładowania baterii.
+        """
+        return self.capacity / self.drive_usage * 60
+
     def is_enough_capacity_before_critical_alert(self, drive_time_min, stand_time_min):
         """
         Sprawdza czy robot posiada wystarczajaca liczbe energii zanim pojawi sie ostrzezenie krytyczne. Pod uwage
